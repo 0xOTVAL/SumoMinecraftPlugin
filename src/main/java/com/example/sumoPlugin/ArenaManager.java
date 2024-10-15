@@ -1,9 +1,7 @@
 package com.example.sumoPlugin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -12,18 +10,20 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import java.sql.Time;
 import java.util.*;
 
 public class ArenaManager {
     List<Arena> arenas_list;
-    public Map<Arena,Player> players=new HashMap<Arena,Player>();
+    public HashMap<Arena,ArrayList<Player>> players=new HashMap<>();
     public HashMap <Arena, Boolean> isArenaStarted=new HashMap<Arena,Boolean>();
     public HashMap <Arena, Boolean> isArenaGameStarted=new HashMap<Arena,Boolean>();
     public HashMap <Player, ItemStack[]> playerInventory=new HashMap<Player,ItemStack[]>();
     public Location respawn_loc;
     public HashMap <Arena, BossBar> bars=new HashMap<>();
     public HashMap <Arena, Integer> times=new HashMap<>();
-    public HashMap <Arena,Map<Team,Player>> arenasTeams=new HashMap<>();
+    public HashMap <Arena,HashMap<Team,ArrayList<Player>>> arenasTeams=new HashMap<>();
+    public HashMap <Player, Timer> playerDeathTimers=new HashMap<>();
 
     ArenaManager(List<Arena> arenas_list, Location respawn_loc){
         this.arenas_list=arenas_list;
@@ -35,8 +35,12 @@ public class ArenaManager {
     }
     public void startArena(Arena arena){
         if(isArenaStarted.containsKey(arena))isArenaStarted.put(arena,true);
-        HashMap<Team,Player> teams=new HashMap<>();                                                                      
+        HashMap<Team,ArrayList<Player>> teams=new HashMap<>();
         arenasTeams.put(arena,teams);
+        players.put(arena,new ArrayList<Player>());
+        for(Team t: arena.teams){
+            arenasTeams.get(arena).put(t,new ArrayList<Player>());
+        }
     }
     public void stopArena(Arena arena){
         if(isArenaStarted.containsKey(arena))isArenaStarted.put(arena,false);
@@ -44,8 +48,8 @@ public class ArenaManager {
     public void startGame(Arena arena){
         isArenaGameStarted.put(arena,true);
         bars.put(arena,Bukkit.getServer().createBossBar("test", BarColor.BLUE, BarStyle.SOLID));
-        for(Map.Entry e: players.entrySet()) {
-            bars.get(arena).addPlayer((Player) e.getValue());
+        for(Player p: players.get(arena)) {
+            bars.get(arena).addPlayer(p);
         }
         Timer timer=new Timer();
         times.put(arena,10*1000);
@@ -69,13 +73,13 @@ public class ArenaManager {
     }
     public void stopGame(Arena arena){
         isArenaGameStarted.put(arena,false);
-        for(Map.Entry e: players.entrySet()){
-            if(e.getKey()==arena)returnPlayer(arena, (Player) e.getValue());
+        for(Player p: players.get(arena)){
+            returnPlayer(arena, p);
         }
     }
     public void joinPlayer(Arena arena,Player player){
         if(!isArenaStarted.get(arena)) return;
-        players.put(arena,player);
+        players.get(arena).add(player);
         Location loc=new Location(Bukkit.getWorld(arena.world),arena.getLobbypos().x,arena.getLobbypos().y,arena.getLobbypos().z);
         player.teleport(loc);
         playerInventory.put(player,player.getInventory().getContents());
@@ -94,12 +98,17 @@ public class ArenaManager {
             }
             player.getInventory().addItem(item);
         }
+        for(int i=Math.round(arena.getPos1().x);i<Math.round(arena.getPos2().x);i++){
+            for(int j=Math.round(arena.getPos1().y);j<Math.round(arena.getPos2().y);j++){
+                Bukkit.getServer().getWorld(arena.world).getBlockAt(i,j,Math.round(arena.getPos1().z)).setType(Material.BLUE_WOOL);
+            }
+        }
         player.setGameMode(GameMode.SURVIVAL);
     }
     public void returnPlayer(Arena arena,Player player){
         bars.get(arena).removePlayer(player);
         player.getInventory().setContents(playerInventory.get(player));
         player.teleportAsync(respawn_loc);
-        players.remove(arena,player);
+        players.get(arena).remove(player);
     }
 }
