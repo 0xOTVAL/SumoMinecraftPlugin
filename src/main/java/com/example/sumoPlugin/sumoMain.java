@@ -10,6 +10,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import net.kyori.adventure.text.Component;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -25,39 +26,44 @@ import java.util.List;
 
 public class sumoMain extends JavaPlugin implements Listener {
     public List<Arena> arenas_list;
+    public ArenaManager arenaManager;
     @Override
     public void onEnable() {
+        //create data folder if not exists
         getDataFolder().mkdir();
         try {
+            //load config
             File configFile = new File(getDataFolder(), "config.yml");
             configFile.createNewFile();
             getConfig().load(configFile);
         }catch (Exception e){
             e.printStackTrace();
         }
+
+        //load arenas from file
         File arenas = new File(getDataFolder(), "arena_list.json");
         try {
             String jsonstring = FileUtils.readFileToString(arenas);
             Gson g = new Gson();
-            arenas_list = new ArrayList(Arrays.asList(g.fromJson(jsonstring, Arena[].class)));
+            arenas_list = new ArrayList<>(Arrays.asList(g.fromJson(jsonstring, Arena[].class)));
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        //create arena manager
+        arenaManager=new ArenaManager(arenas_list,new Location(Bukkit.getWorld("world"),0,105,0));
+
+        //register command
         LifecycleEventManager<Plugin> manager = this.getLifecycleManager();
         manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             final Commands commands = event.registrar();
-            commands.register("sumo",new sumoCommandApi(getDataFolder(),arenas_list));
+            commands.register("sumo",new sumoCommandApi(getDataFolder(),arenas_list,arenaManager));
         });
 
-        Bukkit.getPluginManager().registerEvents(this, this);
+        //register events
         Bukkit.getPluginManager().registerEvents(new attackListener(), this);
         Bukkit.getPluginManager().registerEvents(new interactListener(),this);
-        getConfig();
+        Bukkit.getPluginManager().registerEvents(new moveListener(arenaManager),this);
+        Bukkit.getPluginManager().registerEvents(new useListener(arenaManager),this);
     }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        event.getPlayer().sendMessage(Component.text("Hello, " + event.getPlayer().getName() + "!"));
-    }
-
 }

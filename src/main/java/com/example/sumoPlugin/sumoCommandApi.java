@@ -1,16 +1,10 @@
 package com.example.sumoPlugin;
 
 import com.google.gson.Gson;
-import com.mojang.authlib.minecraft.client.ObjectMapper;
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
-import io.papermc.paper.command.brigadier.Commands;
 import org.apache.commons.io.FileUtils;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -18,11 +12,13 @@ import java.util.Arrays;
 import java.util.List;
 
 public class sumoCommandApi implements BasicCommand {
-    public List<Arena> arenas_list;
+    private List<Arena> arenas_list;
     private File dataFolder;
-    sumoCommandApi(File dataFolder,List<Arena> arenas_list){
+    private ArenaManager arenaManager;
+    sumoCommandApi(File dataFolder,List<Arena> arenas_list,ArenaManager arenaManager){
         this.dataFolder=dataFolder;
         this.arenas_list=arenas_list;
+        this.arenaManager=arenaManager;
     }
     @Override
     public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args){
@@ -49,7 +45,7 @@ public class sumoCommandApi implements BasicCommand {
             switch (args[1]){
                 case "create": {
                     if (args.length<3) {
-                        stack.getSender().sendMessage("specify name(and kill yourself)");
+                        stack.getSender().sendMessage("specify name or kill yourself");
                         return;
                     }
                     Arena arena = new Arena();
@@ -60,15 +56,45 @@ public class sumoCommandApi implements BasicCommand {
                     break;
                 default:
                     if (args.length<3) {
-                        stack.getSender().sendMessage("specify command(and kill yourself)");
+                        stack.getSender().sendMessage("specify command or kill yourself");
                         return;
                     }
                     switch (args[2]){
+                        case "start":{
+                            for (int i=0;i<arenas_list.size();i++) {
+                                if(arenas_list.get(i).name.equals(args[1])){
+                                    arenaManager.startArena(arenas_list.get(i));
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                        case "join":{
+                            for (int i=0;i<arenas_list.size();i++) {
+                                if(arenas_list.get(i).name.equals(args[1])){
+                                    //stack.getSender().sendMessage(stack.getSender().getServer().getPlayer(stack.getSender().getName()).getName());
+                                    arenaManager.joinPlayer(arenas_list.get(i),stack.getSender().getServer().getPlayer(stack.getSender().getName()));
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                        case "gamestart":{
+                            for (int i=0;i<arenas_list.size();i++) {
+                                if(arenas_list.get(i).name.equals(args[1])){
+                                    //stack.getSender().sendMessage(stack.getSender().getServer().getPlayer(stack.getSender().getName()).getName());
+                                    arenaManager.startGame(arenas_list.get(i));
+                                    break;
+                                }
+                            }
+                        }
+                        break;
                         case "pos1": {
                             for (int i=0;i<arenas_list.size();i++) {
                                 if(arenas_list.get(i).name.equals(args[1])){
                                     arenas_list.get(i).pos1=stack.getLocation().toVector().toString();
                                     arenas_list.get(i).world=stack.getLocation().getWorld().getName();
+                                    break;
                                 }
                             }
                         }
@@ -77,6 +103,7 @@ public class sumoCommandApi implements BasicCommand {
                             for (int i=0;i<arenas_list.size();i++) {
                                 if(arenas_list.get(i).name.equals(args[1])){
                                     arenas_list.get(i).pos2=stack.getLocation().toVector().toString();
+                                    break;
                                 }
                             }
                         }
@@ -84,6 +111,7 @@ public class sumoCommandApi implements BasicCommand {
                             for (int i=0;i<arenas_list.size();i++) {
                                 if(arenas_list.get(i).name.equals(args[1])){
                                     arenas_list.get(i).lobbypos=stack.getLocation().toVector().toString();
+                                    break;
                                 }
                             }
                         }
@@ -92,10 +120,11 @@ public class sumoCommandApi implements BasicCommand {
                                 stack.getSender().sendMessage("specify team name (and kill yourself)");
                                 return;
                             }
-                            Team team=new Team(args[3],stack.getLocation().toVector().toString());
+                            Team team=new Team(args[3].split(",")[0],args[3].split(",")[1],stack.getLocation().toVector().toString());
                             for (int i=0;i<arenas_list.size();i++) {
                                 if(arenas_list.get(i).name.equals(args[1])){
                                     arenas_list.get(i).teams.add(team);
+                                    break;
                                 }
                             }
                         }
@@ -109,6 +138,7 @@ public class sumoCommandApi implements BasicCommand {
                                 arenas_list = new ArrayList(Arrays.asList(g.fromJson(jsonstring, Arena[].class)));
                             } catch (Exception e) {
                                 e.printStackTrace();
+
                             }
                             break;
                     }
