@@ -2,7 +2,6 @@ package com.example.sumoPlugin;
 
 
 import com.google.gson.Gson;
-import com.mojang.brigadier.Command;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.bootstrap.BootstrapContext;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
@@ -11,11 +10,16 @@ import net.kyori.adventure.text.Component;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -59,11 +63,18 @@ public class sumoMain extends JavaPlugin implements Listener {
             final Commands commands = event.registrar();
             commands.register("sumo",new sumoCommandApi(getDataFolder(),arenas_list,arenaManager));
         });
-
+        this.getCommand("test").setExecutor(new CommandExecutor() {
+            @Override
+            public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+                sender.sendMessage("testr");
+                return true;
+            }
+        });
         //register events
         Bukkit.getPluginManager().registerEvents(new attackListener(), this);
         Bukkit.getPluginManager().registerEvents(new interactListener(),this);
         Bukkit.getPluginManager().registerEvents(new moveListener(arenaManager),this);
         Bukkit.getPluginManager().registerEvents(new useListener(arenaManager),this);
+        Bukkit.getPluginManager().registerEvents(new deathListener(arenaManager),this);
     }
 }

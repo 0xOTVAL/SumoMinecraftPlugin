@@ -5,3 +5,6 @@ description: I am gay
 author: UwU
 website: https://papermc.io
 api-version: '1.21'
+commands:
+  test:
+    aliases: [tst]

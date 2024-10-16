@@ -100,7 +100,7 @@ public class useListener implements Listener {
         event.getPlayer().getInventory().setHelmet(helmet);
         event.getPlayer().getInventory().setChestplate(chestplate);
         event.getPlayer().getInventory().setLeggings(leggins);
-        event.getPlayer().sendMessage(arenaManager.arenasTeams.get(arena).toString());
 
+        event.getPlayer().sendMessage("You joined "+findTeamByPlayer(arena,event.getPlayer()).name+" team");
     }
 }

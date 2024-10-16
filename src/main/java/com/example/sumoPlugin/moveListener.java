@@ -35,31 +35,7 @@ public class moveListener implements Listener{
                 Location loc=new Location(Bukkit.getWorld(arena.world),arena.getLobbypos().x,arena.getLobbypos().y,arena.getLobbypos().z);
                 event.getPlayer().teleport(loc);
             }
-            if(arenaManager.playerDeathTimers.containsKey(event.getPlayer())){event.setCancelled(true);return;}
-            arenaManager.playerDeathTimers.put(event.getPlayer(), new Timer());
-            arenaManager.playerDeathTimers.get(event.getPlayer()).schedule(new TimerTask() {
-                int a=5;
-                @Override
-                public void run() {
-                    event.getPlayer().sendMessage("you will die in "+Integer.toString(a));
-                    a-=1;
-                }
-            },0,1000);
-            arenaManager.playerDeathTimers.get(event.getPlayer()).schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    event.getPlayer().sendMessage("You died");
-                    arenaManager.returnPlayer(arena,event.getPlayer());
-                    arenaManager.playerDeathTimers.get(event.getPlayer()).cancel();
-                    arenaManager.playerDeathTimers.remove(event.getPlayer());
-                }
-            },5000);
-        }
-        else{
-            if(arenaManager.playerDeathTimers.containsKey(event.getPlayer())){
-                arenaManager.playerDeathTimers.get(event.getPlayer()).cancel();
-                arenaManager.playerDeathTimers.remove(event.getPlayer());
-            }
+            event.getPlayer().damage(6);
         }
     }
 }

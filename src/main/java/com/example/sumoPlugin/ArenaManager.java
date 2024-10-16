@@ -23,7 +23,7 @@ public class ArenaManager {
     public HashMap <Arena, BossBar> bars=new HashMap<>();
     public HashMap <Arena, Integer> times=new HashMap<>();
     public HashMap <Arena,HashMap<Team,ArrayList<Player>>> arenasTeams=new HashMap<>();
-    public HashMap <Player, Timer> playerDeathTimers=new HashMap<>();
+   // public HashMap <Player, Timer> playerDeathTimers=new HashMap<>();
 
     ArenaManager(List<Arena> arenas_list, Location respawn_loc){
         this.arenas_list=arenas_list;
@@ -34,6 +34,7 @@ public class ArenaManager {
         this.respawn_loc=respawn_loc;
     }
     public void startArena(Arena arena){
+
         if(isArenaStarted.containsKey(arena))isArenaStarted.put(arena,true);
         HashMap<Team,ArrayList<Player>> teams=new HashMap<>();
         arenasTeams.put(arena,teams);
@@ -49,31 +50,35 @@ public class ArenaManager {
         isArenaGameStarted.put(arena,true);
         bars.put(arena,Bukkit.getServer().createBossBar("test", BarColor.BLUE, BarStyle.SOLID));
         for(Player p: players.get(arena)) {
+            p.getInventory().clear();
+            p.getInventory().addItem(new ItemStack(Material.STICK));
             bars.get(arena).addPlayer(p);
         }
         Timer timer=new Timer();
-        times.put(arena,10*1000);
+        times.put(arena,60*1000);
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                stopGame(arena);
+                stopGame(arena,true);
             }
-        },10*1000);
+        },60*1000);
+
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
+                Bukkit.getWorld(arena.world).spawnParticle(Particle.DRAGON_BREATH,arena.getLobbypos().x,arena.getLobbypos().y,arena.getLobbypos().z,100,0.2,0.2,0.2,0);
                 updateBar(arena);
             }
         },0,1000);
-
     }
     private void updateBar(Arena arena){
         times.put(arena,times.get(arena)-1000);
         bars.get(arena).setTitle((Integer.toString(times.get(arena)/1000)));
     }
-    public void stopGame(Arena arena){
+    public void stopGame(Arena arena,boolean isTimerDown){
         isArenaGameStarted.put(arena,false);
         for(Player p: players.get(arena)){
+           // p.sendMessage("All commands sucked dick");
             returnPlayer(arena, p);
         }
     }
@@ -106,9 +111,23 @@ public class ArenaManager {
         player.setGameMode(GameMode.SURVIVAL);
     }
     public void returnPlayer(Arena arena,Player player){
-        bars.get(arena).removePlayer(player);
+        players.get(arena).remove(player);
         player.getInventory().setContents(playerInventory.get(player));
         player.teleportAsync(respawn_loc);
-        players.get(arena).remove(player);
+        bars.get(arena).removePlayer(player);
+        HashMap<Team,ArrayList<Player>> active_teams=new HashMap<>();
+        for(Map.Entry e:arenasTeams.get(arena).entrySet()){
+            if(!((ArrayList)e.getValue()).isEmpty()){
+                active_teams.put((Team)e.getKey(),(ArrayList<Player>) e.getValue());
+            }
+        }
+        if(active_teams.size()==1){
+            for(Map.Entry e:active_teams.entrySet()){
+                for(Object p: ((ArrayList)e.getValue())){
+                    ((Player)p).sendMessage("Team"+((Team)e.getKey()).name+"won!");
+                    stopGame(arena,false);
+                }
+            }
+        }
     }
 }
