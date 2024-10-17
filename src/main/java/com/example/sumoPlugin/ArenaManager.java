@@ -55,6 +55,8 @@ public class ArenaManager {
             bars.get(arena).addPlayer(p);
         }
         Timer timer=new Timer();
+        float speedx=Math.abs(arena.getPos1().x-arena.getPos2().x)/122;
+        float speedz=Math.abs(arena.getPos1().z-arena.getPos2().z)/122;
         times.put(arena,60*1000);
         timer.schedule(new TimerTask() {
             @Override
@@ -66,8 +68,28 @@ public class ArenaManager {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                Bukkit.getWorld(arena.world).spawnParticle(Particle.DRAGON_BREATH,arena.getLobbypos().x,arena.getLobbypos().y,arena.getLobbypos().z,100,0.2,0.2,0.2,0);
+                Bukkit.getWorld(arena.world).spawnParticle(Particle.DRAGON_BREATH, arena.getPos1().x, (arena.getPos1().y+arena.getPos2().y)/2, (arena.getPos1().z+arena.getPos2().z)/2, 3000, 0.2, Math.abs(arena.getPos1().y-arena.getPos2().y)/2, Math.abs(arena.getPos1().z-arena.getPos2().z)/2, 0);
+                Bukkit.getWorld(arena.world).spawnParticle(Particle.DRAGON_BREATH, arena.getPos2().x, (arena.getPos1().y+arena.getPos2().y)/2, (arena.getPos1().z+arena.getPos2().z)/2, 3000, 0.2, Math.abs(arena.getPos1().y-arena.getPos2().y)/2, Math.abs(arena.getPos1().z-arena.getPos2().z)/2, 0);
+                Bukkit.getWorld(arena.world).spawnParticle(Particle.DRAGON_BREATH, (arena.getPos1().x+arena.getPos2().x)/2, (arena.getPos1().y+arena.getPos2().y)/2, arena.getPos1().z, 3000, Math.abs(arena.getPos1().x-arena.getPos2().x)/2, Math.abs(arena.getPos1().y-arena.getPos2().y)/2,0.2 , 0);
+                Bukkit.getWorld(arena.world).spawnParticle(Particle.DRAGON_BREATH, (arena.getPos1().x+arena.getPos2().x)/2, (arena.getPos1().y+arena.getPos2().y)/2, arena.getPos2().z, 3000, Math.abs(arena.getPos1().x-arena.getPos2().x)/2, Math.abs(arena.getPos1().y-arena.getPos2().y)/2,0.2 , 0);
                 updateBar(arena);
+
+                if(arena.getPos1().x<arena.getPos2().x){
+                    arena.setPos1(arena.getPos1().x+speedx,arena.getPos1().y,arena.getPos1().z);
+                    arena.setPos2(arena.getPos2().x-speedx,arena.getPos2().y,arena.getPos2().z);
+                }
+                else{
+                    arena.setPos2(arena.getPos2().x+speedx,arena.getPos2().y,arena.getPos2().z);
+                    arena.setPos1(arena.getPos1().x-speedx,arena.getPos1().y,arena.getPos1().z);
+                }
+                if(arena.getPos1().z<arena.getPos2().z){
+                    arena.setPos1(arena.getPos1().x,arena.getPos1().y,arena.getPos1().z+speedz);
+                    arena.setPos2(arena.getPos2().x,arena.getPos2().y,arena.getPos2().z-speedz);
+                }
+                else{
+                    arena.setPos2(arena.getPos2().x,arena.getPos2().y,arena.getPos2().z+speedz);
+                    arena.setPos1(arena.getPos1().x,arena.getPos1().y,arena.getPos1().z-speedz);
+                }
             }
         },0,1000);
     }

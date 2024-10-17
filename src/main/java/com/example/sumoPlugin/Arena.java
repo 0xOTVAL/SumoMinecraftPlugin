@@ -32,5 +32,10 @@ public class Arena {
         String[] split =lobbypos.split(",");
         return new Vector3f(Float.parseFloat(split[0]),Float.parseFloat(split[1]),Float.parseFloat(split[2]));
     }
-
+    public void setPos1(float x,float y,float z){
+        pos1=Float.toString(x)+","+Float.toString(y)+","+Float.toString(z);
+    }
+    public void setPos2(float x,float y,float z){
+        pos2=Float.toString(x)+","+Float.toString(y)+","+Float.toString(z);
+    }
 }
