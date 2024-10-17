@@ -76,5 +76,6 @@ public class sumoMain extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new moveListener(arenaManager),this);
         Bukkit.getPluginManager().registerEvents(new useListener(arenaManager),this);
         Bukkit.getPluginManager().registerEvents(new deathListener(arenaManager),this);
+        Bukkit.getPluginManager().registerEvents(new blockPlaceListener(this),this);
     }
 }

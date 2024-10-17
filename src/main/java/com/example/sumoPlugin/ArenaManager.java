@@ -52,6 +52,9 @@ public class ArenaManager {
         for(Player p: players.get(arena)) {
             p.getInventory().clear();
             p.getInventory().addItem(new ItemStack(Material.STICK));
+            ItemStack wool_stack=new ItemStack(Material.GREEN_WOOL);
+            wool_stack.setAmount(64);
+            p.getInventory().addItem(wool_stack);
             bars.get(arena).addPlayer(p);
         }
         Timer timer=new Timer();
