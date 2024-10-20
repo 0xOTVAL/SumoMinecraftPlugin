@@ -1,52 +1,60 @@
 package com.example.sumoPlugin;
 
 import org.bukkit.*;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 
-import java.sql.Time;
 import java.util.*;
 
 public class ArenaManager {
-    List<Arena> arenas_list;
-    public HashMap<Arena,ArrayList<Player>> players=new HashMap<>();
-    public HashMap <Arena, Boolean> isArenaStarted=new HashMap<Arena,Boolean>();
-    public HashMap <Arena, Boolean> isArenaGameStarted=new HashMap<Arena,Boolean>();
+    List<ArenaData> arenas_list;
+    public HashMap<ArenaData,ArrayList<Player>> players=new HashMap<>();
+    public HashMap <ArenaData, Boolean> isArenaStarted=new HashMap<ArenaData,Boolean>();
+    public HashMap <ArenaData, Boolean> isArenaGameStarted=new HashMap<ArenaData,Boolean>();
     public HashMap <Player, ItemStack[]> playerInventory=new HashMap<Player,ItemStack[]>();
     public Location respawn_loc;
-    public HashMap <Arena, BossBar> bars=new HashMap<>();
-    public HashMap <Arena, Integer> times=new HashMap<>();
-    public HashMap <Arena,HashMap<Team,ArrayList<Player>>> arenasTeams=new HashMap<>();
+    public HashMap <ArenaData, BossBar> bars=new HashMap<>();
+    public HashMap <ArenaData, Integer> times=new HashMap<>();
+    public HashMap <ArenaData,HashMap<TeamData,ArrayList<Player>>> arenasTeams=new HashMap<>();
    // public HashMap <Player, Timer> playerDeathTimers=new HashMap<>();
 
-    ArenaManager(List<Arena> arenas_list, Location respawn_loc){
+    ArenaManager(List<ArenaData> arenas_list, Location respawn_loc){
         this.arenas_list=arenas_list;
-        for(Arena i:this.arenas_list){
+        for(ArenaData i:this.arenas_list){
             isArenaGameStarted.put(i,false);
             isArenaStarted.put(i,false);
         }
         this.respawn_loc=respawn_loc;
     }
-    public void startArena(Arena arena){
+    public Arena getArenaByName(String name){
+        return new Arena(arenas_list.get(1));
+    }
+    public ArenaData getArenaDataByName(String name){
+        return  arenas_list.get(1);
+    }
+    public Arena getArenaByPlayer(Player player){
+        return new Arena(arenas_list.get(1));
+    }
+    public void addArenaData(ArenaData arenaData){
+
+    }
+    public void startArena(ArenaData arena){
 
         if(isArenaStarted.containsKey(arena))isArenaStarted.put(arena,true);
-        HashMap<Team,ArrayList<Player>> teams=new HashMap<>();
+        HashMap<TeamData,ArrayList<Player>> teams=new HashMap<>();
         arenasTeams.put(arena,teams);
         players.put(arena,new ArrayList<Player>());
-        for(Team t: arena.teams){
+        for(TeamData t: arena.teams){
             arenasTeams.get(arena).put(t,new ArrayList<Player>());
         }
     }
-    public void stopArena(Arena arena){
+    public void stopArena(ArenaData arena){
         if(isArenaStarted.containsKey(arena))isArenaStarted.put(arena,false);
     }
-    public void startGame(Arena arena){
+    public void startGame(ArenaData arena){
         isArenaGameStarted.put(arena,true);
         bars.put(arena,Bukkit.getServer().createBossBar("test", BarColor.BLUE, BarStyle.SOLID));
         for(Player p: players.get(arena)) {
@@ -94,20 +102,21 @@ public class ArenaManager {
                     arena.setPos1(arena.getPos1().x,arena.getPos1().y,arena.getPos1().z-speedz);
                 }
             }
+
         },0,1000);
     }
-    private void updateBar(Arena arena){
+    private void updateBar(ArenaData arena){
         times.put(arena,times.get(arena)-1000);
         bars.get(arena).setTitle((Integer.toString(times.get(arena)/1000)));
     }
-    public void stopGame(Arena arena,boolean isTimerDown){
+    public void stopGame(ArenaData arena, boolean isTimerDown){
         isArenaGameStarted.put(arena,false);
         for(Player p: players.get(arena)){
            // p.sendMessage("All commands sucked dick");
             returnPlayer(arena, p);
         }
     }
-    public void joinPlayer(Arena arena,Player player){
+    public void joinPlayer(ArenaData arena, Player player){
         if(!isArenaStarted.get(arena)) return;
         players.get(arena).add(player);
         Location loc=new Location(Bukkit.getWorld(arena.world),arena.getLobbypos().x,arena.getLobbypos().y,arena.getLobbypos().z);
@@ -115,16 +124,16 @@ public class ArenaManager {
         playerInventory.put(player,player.getInventory().getContents());
         player.getInventory().clear();
         ItemStack item;
-        for(Team i:arena.teams){
-            switch (i.color){
-                case "RED"->item=new ItemStack(Material.RED_BANNER);
-                case "GREEN"->item=new ItemStack(Material.GREEN_BANNER);
-                case "BLUE"->item=new ItemStack(Material.BLUE_BANNER);
-                case "BLACK"->item=new ItemStack(Material.BLACK_BANNER);
-                case "WHITE"->item=new ItemStack(Material.WHITE_BANNER);
-                case "YELLOW"->item=new ItemStack(Material.YELLOW_BANNER);
-                case "LIME"->item=new ItemStack(Material.LIME_BANNER);
-                default -> item=new ItemStack(Material.ORANGE_BANNER);
+        for(TeamData i:arena.teams){
+            switch (i.color) {
+                case "RED" -> item = new ItemStack(Material.RED_BANNER);
+                case "GREEN" -> item = new ItemStack(Material.GREEN_BANNER);
+                case "BLUE" -> item = new ItemStack(Material.BLUE_BANNER);
+                case "BLACK" -> item = new ItemStack(Material.BLACK_BANNER);
+                case "WHITE" -> item = new ItemStack(Material.WHITE_BANNER);
+                case "YELLOW" -> item = new ItemStack(Material.YELLOW_BANNER);
+                case "LIME" -> item = new ItemStack(Material.LIME_BANNER);
+                default -> item = new ItemStack(Material.ORANGE_BANNER);
             }
             player.getInventory().addItem(item);
         }
@@ -135,21 +144,21 @@ public class ArenaManager {
         }
         player.setGameMode(GameMode.SURVIVAL);
     }
-    public void returnPlayer(Arena arena,Player player){
+    public void returnPlayer(ArenaData arena, Player player){
         players.get(arena).remove(player);
         player.getInventory().setContents(playerInventory.get(player));
         player.teleportAsync(respawn_loc);
         bars.get(arena).removePlayer(player);
-        HashMap<Team,ArrayList<Player>> active_teams=new HashMap<>();
+        HashMap<TeamData,ArrayList<Player>> active_teams=new HashMap<>();
         for(Map.Entry e:arenasTeams.get(arena).entrySet()){
             if(!((ArrayList)e.getValue()).isEmpty()){
-                active_teams.put((Team)e.getKey(),(ArrayList<Player>) e.getValue());
+                active_teams.put((TeamData)e.getKey(),(ArrayList<Player>) e.getValue());
             }
         }
         if(active_teams.size()==1){
             for(Map.Entry e:active_teams.entrySet()){
                 for(Object p: ((ArrayList)e.getValue())){
-                    ((Player)p).sendMessage("Team"+((Team)e.getKey()).name+"won!");
+                    ((Player)p).sendMessage("Team"+((TeamData)e.getKey()).name+"won!");
                     stopGame(arena,false);
                 }
             }

@@ -6,29 +6,28 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.Map;
 
 public class blockPlaceListener implements Listener {
     public ArenaManager arenaManager;
-    public sumoMain plugin;
-    blockPlaceListener(sumoMain plugin){
+    public Sumo plugin;
+    blockPlaceListener(Sumo plugin){
         this.plugin=plugin;
         arenaManager=plugin.arenaManager;
     }
-    private Arena getArenaByPlayer( Player player) {
+    private ArenaData getArenaByPlayer(Player player) {
         for (Map.Entry e: arenaManager.players.entrySet()) {
             for(Object p: (ArrayList)e.getValue()){
-                if(p==player)return (Arena) e.getKey();
+                if(p==player)return (ArenaData) e.getKey();
             }
         }
         return null;
     }
     @EventHandler
     void PlaceBlock(BlockPlaceEvent event){
-        Arena arena=getArenaByPlayer(event.getPlayer());
+        ArenaData arena=getArenaByPlayer(event.getPlayer());
         if(!arenaManager.isArenaGameStarted.get(arena)){
             event.setCancelled(true);
             return;

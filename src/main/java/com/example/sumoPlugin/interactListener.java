@@ -1,20 +1,23 @@
 package com.example.sumoPlugin;
 
 import io.papermc.paper.event.player.PlayerOpenSignEvent;
-import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerInteractEvent;
 
 public class interactListener implements Listener {
+    Sumo plugin;
+    public interactListener(Sumo plugin){
+        this.plugin=plugin;
+    }
     @EventHandler
     public void PlayerInteract(PlayerOpenSignEvent event){
-        event.getPlayer().sendMessage(event.getSign().getSide(event.getSide()).lines().getFirst());
-        String firstline=event.getSign().getSide(event.getSide()).getLines()[0];
-        if(firstline.equals("sumo")){
-            event.getPlayer().teleport(new Location(event.getPlayer().getWorld(),0,200,0));
-            event.setCancelled(true);
-        }
-
+        //get lines of sign
+        String firstline= event.getSign().getSide(event.getSide()).lines().getFirst().toString();
+        String secondline= event.getSign().getSide(event.getSide()).lines().get(1).toString();
+        //first line is indicator of sign being arena entry point
+        if(!firstline.equals("sumo"))return;
+        //get arena and add player to it
+        Arena arena=plugin.arenaManager.getArenaByName(secondline);
+        if(arena!=null)arena.addPlayer(event.getPlayer());
     }
 }

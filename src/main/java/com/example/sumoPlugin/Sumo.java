@@ -2,34 +2,24 @@ package com.example.sumoPlugin;
 
 
 import com.google.gson.Gson;
-import io.papermc.paper.command.brigadier.Commands;
-import io.papermc.paper.plugin.bootstrap.BootstrapContext;
-import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
-import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
-import net.kyori.adventure.text.Component;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
-public class sumoMain extends JavaPlugin implements Listener {
-    public List<Arena> arenas_list;
+public class Sumo extends JavaPlugin implements Listener {
+    public List<ArenaData> arenas_list;
     public ArenaManager arenaManager;
     @Override
     public void onEnable() {
@@ -49,7 +39,7 @@ public class sumoMain extends JavaPlugin implements Listener {
         try {
             String jsonstring = FileUtils.readFileToString(arenas);
             Gson g = new Gson();
-            arenas_list = new ArrayList<>(Arrays.asList(g.fromJson(jsonstring, Arena[].class)));
+            arenas_list = new ArrayList<>(Arrays.asList(g.fromJson(jsonstring, ArenaData[].class)));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -58,12 +48,7 @@ public class sumoMain extends JavaPlugin implements Listener {
         arenaManager=new ArenaManager(arenas_list,new Location(Bukkit.getWorld("world"),0,105,0));
 
         //register command
-        LifecycleEventManager<Plugin> manager = this.getLifecycleManager();
-        manager.registerEventHandler(LifecycleEvents.COMMANDS, event -> {
-            final Commands commands = event.registrar();
-            commands.register("sumo",new sumoCommandApi(getDataFolder(),arenas_list,arenaManager));
-        });
-        this.getCommand("test").setExecutor(new CommandExecutor() {
+        Objects.requireNonNull(this.getCommand("sumo")).setExecutor(new CommandExecutor() {
             @Override
             public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
                 sender.sendMessage("testr");
@@ -72,7 +57,7 @@ public class sumoMain extends JavaPlugin implements Listener {
         });
         //register events
         Bukkit.getPluginManager().registerEvents(new attackListener(), this);
-        Bukkit.getPluginManager().registerEvents(new interactListener(),this);
+        Bukkit.getPluginManager().registerEvents(new interactListener(this),this);
         Bukkit.getPluginManager().registerEvents(new moveListener(arenaManager),this);
         Bukkit.getPluginManager().registerEvents(new useListener(arenaManager),this);
         Bukkit.getPluginManager().registerEvents(new deathListener(arenaManager),this);

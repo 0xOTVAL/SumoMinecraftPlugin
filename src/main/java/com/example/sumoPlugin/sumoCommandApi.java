@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.apache.commons.io.FileUtils;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -11,11 +14,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+
 public class sumoCommandApi implements BasicCommand {
-    private List<Arena> arenas_list;
+    private List<ArenaData> arenas_list;
     private File dataFolder;
     private ArenaManager arenaManager;
-    sumoCommandApi(File dataFolder,List<Arena> arenas_list,ArenaManager arenaManager){
+    sumoCommandApi(File dataFolder, List<ArenaData> arenas_list, ArenaManager arenaManager){
         this.dataFolder=dataFolder;
         this.arenas_list=arenas_list;
         this.arenaManager=arenaManager;
@@ -37,7 +41,7 @@ public class sumoCommandApi implements BasicCommand {
         if(args[0].equals("arena")) {
             if(args.length<2) {
                 stack.getSender().sendMessage(String.valueOf(arenas_list.size()));
-                for (Arena i : arenas_list) {
+                for (ArenaData i : arenas_list) {
                     stack.getSender().sendMessage(i.teams.get(0).name);
                 }
                 return;
@@ -48,7 +52,7 @@ public class sumoCommandApi implements BasicCommand {
                         stack.getSender().sendMessage("specify name or kill yourself");
                         return;
                     }
-                    Arena arena = new Arena();
+                    ArenaData arena = new ArenaData();
                     arena.name = args[2];
                     arenas_list.add(arena);
                     stack.getSender().sendMessage("Arena created(maybe)");
@@ -120,7 +124,7 @@ public class sumoCommandApi implements BasicCommand {
                                 stack.getSender().sendMessage("specify team name (and kill yourself)");
                                 return;
                             }
-                            Team team=new Team(args[3].split(",")[0],args[3].split(",")[1],stack.getLocation().toVector().toString());
+                            TeamData team=new TeamData(args[3].split(",")[0],args[3].split(",")[1],stack.getLocation().toVector().toString());
                             for (int i=0;i<arenas_list.size();i++) {
                                 if(arenas_list.get(i).name.equals(args[1])){
                                     arenas_list.get(i).teams.add(team);
@@ -135,7 +139,7 @@ public class sumoCommandApi implements BasicCommand {
                                 File arenas = new File(dataFolder, "arena_list.json");
                                 FileUtils.writeStringToFile(arenas,out);
                                 String jsonstring = FileUtils.readFileToString(arenas);
-                                arenas_list = new ArrayList(Arrays.asList(g.fromJson(jsonstring, Arena[].class)));
+                                arenas_list = new ArrayList(Arrays.asList(g.fromJson(jsonstring, ArenaData[].class)));
                             } catch (Exception e) {
                                 e.printStackTrace();
 

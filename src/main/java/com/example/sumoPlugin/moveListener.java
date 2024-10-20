@@ -1,14 +1,10 @@
 package com.example.sumoPlugin;
 
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
-
-import java.util.*;
 
 
 public class moveListener implements Listener{
@@ -16,26 +12,23 @@ public class moveListener implements Listener{
     moveListener(ArenaManager arenaManager){
         this.arenaManager=arenaManager;
     }
-    private Arena getArenaByPlayer( Player player) {
-        for (Map.Entry e: arenaManager.players.entrySet()) {
-            for(Object p: (ArrayList)e.getValue()){
-                if(p==player)return (Arena) e.getKey();
-            }
-        }
-        return null;
-    }
+
     @EventHandler
-    public void PlayerMove(PlayerMoveEvent event){
-        Arena arena= getArenaByPlayer(event.getPlayer());
-        if(arena==null)return;
-        if(!(Math.min(arena.getPos1().x,arena.getPos2().x)<event.getTo().x() && event.getTo().x()<Math.max(arena.getPos1().x,arena.getPos2().x) &&
-           Math.min(arena.getPos1().y,arena.getPos2().y)<event.getTo().y() && event.getTo().y()<Math.max(arena.getPos1().y,arena.getPos2().y) &&
-           Math.min(arena.getPos1().z,arena.getPos2().z)<event.getTo().z() && event.getTo().z()<Math.max(arena.getPos1().z,arena.getPos2().z))){
-            if(!arenaManager.isArenaGameStarted.get(arena)){
-                Location loc=new Location(Bukkit.getWorld(arena.world),arena.getLobbypos().x,arena.getLobbypos().y,arena.getLobbypos().z);
+    public void PlayerMove(PlayerMoveEvent event) {
+        //get arena
+        Arena arena = arenaManager.getArenaByPlayer(event.getPlayer());
+        if (arena == null) return;
+
+        if (!arena.isInsideBarrier(event.getTo().toVector().toVector3f())) {
+            //if player is outside barrier and game has not started teleport in to lobby
+            if (!arena.isGameStarted) {
+                Location loc = new Location(arena.world, arena.lobbypos.x, arena.lobbypos.y, arena.lobbypos.z);
                 event.getPlayer().teleport(loc);
             }
-            event.getPlayer().damage(6);
+            //if game started inflict damage to player
+            else{
+                event.getPlayer().damage(6);
+            }
         }
     }
 }
