@@ -15,24 +15,24 @@ import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 public class Arena {
-    Boolean isStarted=false;
-    Boolean isGameStarted=false;
+    public Boolean isStarted=false;
+    public Boolean isGameStarted=false;
 
-    Vector3f pos1,pos2,lobbypos,barrierPos1,barrierPos2;
-    Location respawn_loc;
-    String name;
-    World world;
-    Integer gameTime,activeGameTime;
-    Float barrierXSpeed;
-    Float barrierZSpeed;
+    public Vector3f pos1,pos2,lobbypos,barrierPos1,barrierPos2;
+    public Location respawn_loc;
+    public String name;
+    public World world;
+    public Integer gameTime,activeGameTime;
+    public Float barrierXSpeed;
+    public Float barrierZSpeed;
 
-    ArrayList<Player> players=new ArrayList<>();
-    ArrayList<Team> teams=new ArrayList<>();
-    HashMap<Player, ItemStack[]> playerInventory=new HashMap<>();
+    public ArrayList<Player> players=new ArrayList<>();
+    public ArrayList<Team> teams=new ArrayList<>();
+    public HashMap<Player, ItemStack[]> playerInventory=new HashMap<>();
 
-    Timer timer;
-    BossBar bar;
-    Particle barrierParticle;
+    public Timer timer;
+    public BossBar bar;
+    public Particle barrierParticle=Particle.DRAGON_BREATH;
 
     public Arena(@NotNull ArenaData data){
         name = data.name;
@@ -43,6 +43,9 @@ public class Arena {
         lobbypos=new Vector3f(Float.parseFloat(data.lobbypos.split(",")[0]),Float.parseFloat(data.lobbypos.split(",")[1]),Float.parseFloat(data.lobbypos.split(",")[2]));
 
         gameTime= data.gameTime;
+        for(TeamData td: data.teams){
+            teams.add(new Team(td));
+        }
     }
     public Team getTeamByPlayer(Player player){
         for(Team t: teams){
@@ -52,13 +55,14 @@ public class Arena {
     }
     public Team getTeamByItem(ItemStack item){
         for(Team t: teams){
-            if(t.banner==item)return t;
+            if(t.banner.getType()==item.getType())return t;
         }
         return null;
     }
-    public int addPlayer(Player player){
+    public String addPlayer(Player player){
         //If arena is not started or game on arena has started we cannot add player
-        if(!isStarted || isGameStarted)return -1;
+        if(!isStarted)return "Arena "+name+" has not started";
+        if(isGameStarted)return "Can not join to started game";
         //Add player to array
         players.add(player);
         //Teleport player to lobby
@@ -72,24 +76,18 @@ public class Arena {
         }
         //Set player gamemode to survival
         player.setGameMode(GameMode.SURVIVAL);
-        return 0;
+        return "You joined "+name;
     }
-    public int startGame(){
+    public String startGame(){
+        timer=new Timer();
+        if(players.isEmpty())return "Can not start arena with no players";
+        if(!isStarted)return "Arena is not started";
+
         activeGameTime=gameTime;
-
-        barrierPos1.x=min(pos1.x,pos2.x);
-        barrierPos1.y=min(pos1.y,pos2.y);
-        barrierPos1.z=min(pos1.z,pos2.z);
-
-        barrierPos2.x=max(pos1.x,pos2.x);
-        barrierPos2.y=max(pos1.y,pos2.y);
-        barrierPos2.z=max(pos1.z,pos2.z);
 
         barrierXSpeed=Math.abs(barrierPos2.x-barrierPos1.x-2)/(2*gameTime);
         barrierZSpeed=Math.abs(barrierPos2.z-barrierPos1.z-2)/(2*gameTime);
 
-        if(players.isEmpty())return -1;
-        if(!isStarted)return -2;
         //create bar that will show remaining time
         bar=Bukkit.getServer().createBossBar(gameTime / 60 +":"+ gameTime % 60, BarColor.BLUE, BarStyle.SOLID);
 
@@ -106,8 +104,9 @@ public class Arena {
             //add bar to player
             bar.addPlayer(p);
             //teleport player to its spawn
-            Vector3f spawn=getTeamByPlayer(p).spawnpos;
-            p.teleportAsync(new Location(world,spawn.x,spawn.y,spawn.z));
+          //  Vector3f spawn=getTeamByPlayer(p).spawnpos;
+            //p.sendMessage(spawn.toString());
+            //p.teleportAsync(new Location(world,spawn.x,spawn.y,spawn.z));
         }
         //after this time game will finish
         timer.schedule(new TimerTask() {
@@ -127,7 +126,8 @@ public class Arena {
                 bar.setProgress((double) activeGameTime /gameTime);
             }
         },0,1000);
-        return 0;
+        isGameStarted=true;
+        return "Game on arena "+name+" started successful";
     }
     private void shrinkBarrier(){
         barrierPos1.x+=barrierXSpeed;
@@ -137,26 +137,24 @@ public class Arena {
         barrierPos2.z-=barrierZSpeed;
     }
     private void drawBarrier(){
-        float barrierXWidth=Math.abs(barrierPos2.x-barrierPos1.x);
-        float barrierYWidth =Math.abs(barrierPos2.y-barrierPos1.y);
-        float barrierZWidth =Math.abs(barrierPos2.z-barrierPos1.z);
+        float barrierXWidth=Math.abs(barrierPos2.x-barrierPos1.x)/2;
+        float barrierYWidth =Math.abs(barrierPos2.y-barrierPos1.y)/2;
+        float barrierZWidth =Math.abs(barrierPos2.z-barrierPos1.z)/2;
 
-        world.spawnParticle(barrierParticle, barrierPos1.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, Optional.of(0));
-        world.spawnParticle(barrierParticle, barrierPos2.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, Optional.of(0));
+        world.spawnParticle(barrierParticle, barrierPos1.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, 0);
+        world.spawnParticle(barrierParticle, barrierPos2.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, 0);
 
-        world.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos1.z, 3000, barrierXWidth, barrierYWidth, 0.2, Optional.of(0));
-        world.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos1.z, 3000, barrierXWidth, barrierYWidth, 0.2, Optional.of(0));
+        world.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos1.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);
+        world.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos2.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);
     }
-    public int stopGame(){
+    private void stopGame(){
         timer.cancel();
         for(Player p : players){
             returnPlayer(p,"gameFinish");
         }
-        return 0;
     }
-    public int returnPlayer(Player player,String reason){
-        if(!isStarted)return -1;
-        if(!players.contains(player))return -2;
+    public String returnPlayer(Player player,String reason){
+        if(!players.contains(player))return "You are not on arena "+name;
         //restore player inventory
         player.getInventory().setContents(playerInventory.get(player));
         players.remove(player);
@@ -165,16 +163,28 @@ public class Arena {
         bar.removePlayer(player);
         //teleport player to respawn location
         if(reason.equals("exit") || reason.equals("gameFinish"))player.teleportAsync(respawn_loc);
-        return 0;
+        return "You left "+name;
     }
-    public int start(){
+    public String start(){
+        if(isStarted)return "Arena is already started";
         isStarted=true;
-        return 0;
+
+        barrierPos1=new Vector3f();
+        barrierPos2=new Vector3f();
+
+        barrierPos1.x=min(pos1.x,pos2.x);
+        barrierPos1.y=min(pos1.y,pos2.y);
+        barrierPos1.z=min(pos1.z,pos2.z);
+
+        barrierPos2.x=max(pos1.x,pos2.x);
+        barrierPos2.y=max(pos1.y,pos2.y);
+        barrierPos2.z=max(pos1.z,pos2.z);
+        return "Arena "+name+" has started";
     }
-    public int stop(){
-        if(!players.isEmpty())return -1;
+    public String stop(){
+        if(!players.isEmpty())return "There are players on arena";
         isStarted=false;
-        return 0;
+        return "Arena "+name+" stopped";
     }
     public boolean isInsideBarrier(Vector3f pos){
         return (barrierPos1.x<pos.x() && pos.x()<barrierPos2.x &&

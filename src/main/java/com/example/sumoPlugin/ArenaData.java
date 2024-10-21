@@ -1,8 +1,8 @@
 package com.example.sumoPlugin;
 
-import org.joml.Vector3f;
-
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class ArenaData {
     public String name="";
@@ -10,30 +10,25 @@ public class ArenaData {
     public String pos1="";
     public String pos2="";
     public String lobbypos="";
-    public Integer gameTime;
-    public ArrayList<TeamData> teams=new ArrayList<TeamData>();
-    public ArenaData(String name, String world, String pos1, String pos2, String lobbypos, TeamData[] teams){
+    public int gameTime=-1;
+    public ArrayList<TeamData> teams= new ArrayList<>();
 
+    public ArenaData(String name, String world, String pos1, String pos2, String lobbypos, TeamData[] teams,int gameTime){
+        this.name=name;
+        this.world=world;
+        this.pos1=pos1;
+        this.pos2=pos2;
+        this.lobbypos=lobbypos;
+        this.teams= Arrays.stream(teams).collect(Collectors.toCollection(ArrayList::new));
+        this.gameTime=gameTime;
     }
     public ArenaData(){
 
     }
-    public Vector3f getPos1(){
-        String[] split =pos1.split(",");
-        return new Vector3f(Float.parseFloat(split[0]),Float.parseFloat(split[1]),Float.parseFloat(split[2]));
-    }
-    public Vector3f getPos2(){
-        String[] split =pos2.split(",");
-        return new Vector3f(Float.parseFloat(split[0]),Float.parseFloat(split[1]),Float.parseFloat(split[2]));
-    }
-    public Vector3f getLobbypos(){
-        String[] split =lobbypos.split(",");
-        return new Vector3f(Float.parseFloat(split[0]),Float.parseFloat(split[1]),Float.parseFloat(split[2]));
-    }
-    public void setPos1(float x,float y,float z){
-        pos1=Float.toString(x)+","+Float.toString(y)+","+Float.toString(z);
-    }
-    public void setPos2(float x,float y,float z){
-        pos2=Float.toString(x)+","+Float.toString(y)+","+Float.toString(z);
+    public TeamData getTeamDataByName(String name){
+        for(TeamData t: teams){
+            if(t.name.equals(name))return t;
+        }
+        return null;
     }
 }

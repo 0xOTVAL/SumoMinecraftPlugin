@@ -1,6 +1,6 @@
 name: sumo
 version: 1.0.0
-main: com.example.sumoPlugin.sumoMain
+main: com.example.sumoPlugin.Sumo
 description: I am gay
 author: UwU
 website: https://papermc.io

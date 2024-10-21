@@ -1,16 +1,13 @@
 package com.example.sumoPlugin;
 
 
+import com.example.sumoPlugin.command.MainCommand;
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -21,6 +18,7 @@ import java.util.Objects;
 public class Sumo extends JavaPlugin implements Listener {
     public List<ArenaData> arenas_list;
     public ArenaManager arenaManager;
+
     @Override
     public void onEnable() {
         //create data folder if not exists
@@ -48,13 +46,8 @@ public class Sumo extends JavaPlugin implements Listener {
         arenaManager=new ArenaManager(arenas_list,new Location(Bukkit.getWorld("world"),0,105,0));
 
         //register command
-        Objects.requireNonNull(this.getCommand("sumo")).setExecutor(new CommandExecutor() {
-            @Override
-            public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-                sender.sendMessage("testr");
-                return true;
-            }
-        });
+        MainCommand mainCommand=new MainCommand(this);
+        Objects.requireNonNull(this.getCommand("sumo")).setExecutor(mainCommand.base);
         //register events
         Bukkit.getPluginManager().registerEvents(new attackListener(), this);
         Bukkit.getPluginManager().registerEvents(new interactListener(this),this);
