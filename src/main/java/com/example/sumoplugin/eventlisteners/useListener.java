@@ -19,6 +19,7 @@ public class useListener implements Listener {
     }
     @EventHandler
     public void PlayerRightClick(PlayerInteractEvent event){
+        if(event.getAction().isLeftClick())return;
         //get arena and player
         Player player=event.getPlayer();
         Arena arena=arenaManager.getArenaByPlayer(player);
@@ -26,12 +27,12 @@ public class useListener implements Listener {
         if(arena==null)return;
         if(!arena.isStarted)return;
         if(arena.isGameStarted)return;
-
+        if(event.getItem()==null)return;
         if(event.getItem().getType()== Material.DIAMOND){
             player.sendMessage(arena.startGame());
             return;
         }
-        if(event.getItem().getType()== Material.SLIME_BALL){
+        if(event.getItem().getType()== Material.SLIME_BALL ) {
             arena.logoutPlayer(player);
             return;
         }

@@ -31,7 +31,7 @@ public class moveListener implements Listener{
             }
             //if game started inflict damage to player
             else{
-                event.getPlayer().damage(6);
+                event.getPlayer().damage(Integer.parseInt(plugin.getConfig().get("barrier_damage").toString()));
             }
         }
     }

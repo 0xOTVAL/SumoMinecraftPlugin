@@ -13,6 +13,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,16 +30,16 @@ public class Sumo extends JavaPlugin implements Listener {
         try {
             //load config
             File configFile = new File(getDataFolder(), "config.yml");
-            configFile.createNewFile();
+            if(!configFile.exists())configFile.createNewFile();
             getConfig().load(configFile);
         }catch (Exception e){
             e.printStackTrace();
         }
-
+        String respawnloc= getConfig().get("respawn_location").toString();
         //load arenas from file
         File arenas = new File(getDataFolder(), "arena_list.json");
         try {
-            String jsonstring = FileUtils.readFileToString(arenas);
+            String jsonstring = FileUtils.readFileToString(arenas, Charset.defaultCharset());
             Gson g = new Gson();
             arenas_list = new ArrayList<>(Arrays.asList(g.fromJson(jsonstring, ArenaData[].class)));
         } catch (Exception e) {
@@ -46,7 +47,7 @@ public class Sumo extends JavaPlugin implements Listener {
         }
 
         //create arena manager
-        arenaManager=new ArenaManager(arenas_list,new Location(Bukkit.getWorld("world"),0,105,0));
+        arenaManager=new ArenaManager(arenas_list,new Location(Bukkit.getWorld(respawnloc.split(",")[0]),Float.parseFloat(respawnloc.split(",")[1]),Float.parseFloat(respawnloc.split(",")[2]),Float.parseFloat(respawnloc.split(",")[3])));
 
         //register command
         MainCommand mainCommand=new MainCommand(this);
@@ -59,5 +60,6 @@ public class Sumo extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new deathListener(this),this);
         Bukkit.getPluginManager().registerEvents(new blockPlaceListener(this),this);
         Bukkit.getPluginManager().registerEvents(new logoutListener(this),this);
+        Bukkit.getPluginManager().registerEvents(new blockBreakListener(this),this);
     }
 }

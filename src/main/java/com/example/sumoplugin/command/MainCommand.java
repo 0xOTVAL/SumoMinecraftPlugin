@@ -16,17 +16,18 @@ public class MainCommand {
         this.initCommands();
     }
     private void initCommands(){
+        base.addSubCommand(new JoinArena(plugin));
+        base.addSubCommand(new LeaveArena(plugin));
+        base.addSubCommand(new StartArena(plugin));
+        base.addSubCommand(new StartArenaGame(plugin));
+        base.addSubCommand(new StopArena(plugin));
+        base.addSubCommand(new ArenaList(plugin));
+        base.addSubCommand(new SetGameTime(plugin));
         base.addSubCommand(new SetPos1(plugin));
         base.addSubCommand(new SetPos2(plugin));
         base.addSubCommand(new CreateArena(plugin));
         base.addSubCommand(new SaveArena(plugin));
         base.addSubCommand(new AddTeam(plugin));
         base.addSubCommand(new SetTeamSpawn(plugin));
-        base.addSubCommand(new JoinArena(plugin));
-        base.addSubCommand(new StartArena(plugin));
-        base.addSubCommand(new StartArenaGame(plugin));
-        base.addSubCommand(new StopArena(plugin));
-        base.addSubCommand(new LeaveArena(plugin));
-        base.addSubCommand(new ArenaList(plugin));
     }
 }

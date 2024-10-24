@@ -26,7 +26,7 @@ public class attackListener implements Listener {
         Player attackedPlayer=(Player)event.getAttacked();
         if(arena.getTeamByPlayer(attackedPlayer)==arena.getTeamByPlayer(event.getPlayer()))return;
         Vector entityVelocityVector=event.getPlayer().getLocation().getDirection();
-        entityVelocityVector.multiply(10);
+        entityVelocityVector.multiply(Integer.parseInt(plugin.getConfig().get("attack_strength").toString()));
         event.getAttacked().setVelocity(entityVelocityVector);
         event.setCancelled(true);
     }

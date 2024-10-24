@@ -34,6 +34,7 @@ public class Arena {
     public ArrayList<Player> players=new ArrayList<>();
     public ArrayList<Team> teams=new ArrayList<>();
     public ArrayList<Team> activeTeams=new ArrayList<>();
+    public ArrayList<Player> spectators=new ArrayList<>();
     public HashMap<Player, ItemStack[]> playerInventory=new HashMap<>();
 
     public Timer timer;
@@ -99,7 +100,8 @@ public class Arena {
                 return "There are players with no team";
             }
             else{
-                activeTeams.add(t);
+
+                if(!activeTeams.contains(t))activeTeams.add(t);
             }
         }
 
@@ -175,25 +177,29 @@ public class Arena {
     }
     private void stopGame(String reason){
         timer.cancel();
+        isGameStarted=false;
         for(Player p : players){
+            p.sendMessage(reason);
             if(reason.equals("teamWin"))p.showTitle(Title.title(Component.text("Team "+activeTeams.getFirst().name+" won",TextColor.color(activeTeams.getFirst().color.asRGB())),Component.text("")));
             if(reason.equals("timerEnd"))p.showTitle(Title.title(Component.text("There is no winner"),Component.text("")));
             returnPlayer(p);
         }
+        bar.removeAll();
+        spectators.clear();
         activeTeams.clear();
-        isGameStarted=false;
     }
     public void returnPlayer(Player player){
         if(!players.contains(player))return;
         //restore player inventory
         player.getInventory().setContents(playerInventory.get(player));
-        players.remove(player);
         playerInventory.remove(player);
         if(getTeamByPlayer(player)!=null)getTeamByPlayer(player).removePlayer(player);
         if(bar!=null)if(bar.getPlayers().contains(player))bar.removePlayer(player);
         //teleport player to respawn location
         player.setGameMode(GameMode.SURVIVAL);
-        player.teleportAsync(respawn_loc);
+        player.teleport(respawn_loc);
+
+        players.remove(player);
     }
     public String start(){
         if(isStarted)return "Arena is already started";
@@ -221,14 +227,15 @@ public class Arena {
     }
     public void killPlayer(Player player){
         player.setGameMode(GameMode.SPECTATOR);
+        spectators.add(player);
         if( getTeamByPlayer(player)!=null)getTeamByPlayer(player).removePlayer(player);
-        player.teleportAsync(new Location(world,lobbypos.x,lobbypos.y,lobbypos.z));
+        player.teleport(new Location(world,lobbypos.x,lobbypos.y,lobbypos.z));
         player.showTitle(Title.title(Component.text("You died", TextColor.color(255,0,0)),Component.text("")));
 
         activeTeams.removeIf(t -> t.players.isEmpty());
-
         if(activeTeams.size() == 1) {
             stopGame("teamWin");
+            return;
         }
         if (activeTeams.isEmpty()) {
             stopGame("timerEnd");
@@ -240,6 +247,7 @@ public class Arena {
         returnPlayer(player);
         if(activeTeams.size() == 1) {
             stopGame("teamWin");
+            return;
         }
         if (activeTeams.isEmpty()) {
             stopGame("timerEnd");
