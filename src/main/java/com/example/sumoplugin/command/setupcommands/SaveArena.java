@@ -33,6 +33,7 @@ public class SaveArena extends SubCommand {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        plugin.arenaManager.updateArenasData();
     }
     @Override
     public boolean canExecute(CommandSender sender, Command baseCommand, String baseCommandLabel, String subCommandLabel, String[] subCommandArgs) {

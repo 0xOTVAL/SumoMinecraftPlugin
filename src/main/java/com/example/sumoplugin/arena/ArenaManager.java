@@ -37,9 +37,12 @@ public class ArenaManager {
         return null;
     }
     public void addArenaData(ArenaData arenaData){
-
+        arenaDataList.add(arenaData);
     }
     public void updateArenasData(){
-
+        for(ArenaData d:arenaDataList){
+            Arena a =new Arena(d);
+            if(!arenas.contains(a))arenas.add(a);
+        }
     }
 }

@@ -26,7 +26,7 @@ public class moveListener implements Listener{
         if (!arena.isInsideBarrier(event.getTo().toVector().toVector3f())) {
             //if player is outside barrier and game has not started teleport in to lobby
             if (!arena.isGameStarted) {
-                Location loc = new Location(arena.world, arena.lobbypos.x, arena.lobbypos.y, arena.lobbypos.z);
+                Location loc = new Location(arena.worldcopy, arena.lobbypos.x, arena.lobbypos.y, arena.lobbypos.z);
                 event.getPlayer().teleport(loc);
             }
             //if game started inflict damage to player

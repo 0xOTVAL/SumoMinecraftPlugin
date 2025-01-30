@@ -20,6 +20,7 @@ public class CreateArena extends SubCommand {
             return;
         }
         plugin.arenaManager.addArenaData(arenaData);
+        sender.sendMessage("Arena "+arenaData.name+" created");
     }
     @Override
     public boolean canExecute(CommandSender sender, Command baseCommand, String baseCommandLabel, String subCommandLabel, String[] subCommandArgs) {

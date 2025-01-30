@@ -33,7 +33,6 @@ public class blockPlaceListener implements Listener {
             public void run()
             {
                 event.getBlockPlaced().setType(Material.YELLOW_WOOL);
-                event.getPlayer().sendMessage("Pizdec");
             }
         }, 20L);
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
@@ -42,7 +41,6 @@ public class blockPlaceListener implements Listener {
             public void run()
             {
                 event.getBlockPlaced().setType(Material.RED_WOOL);
-                event.getPlayer().sendMessage("Pizdec2");
             }
         }, 2*20L);
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
@@ -51,7 +49,6 @@ public class blockPlaceListener implements Listener {
             public void run()
             {
                 event.getBlockPlaced().setType(Material.AIR);
-                event.getPlayer().sendMessage("Pizdec3");
             }
         }, 3*20L);
     }

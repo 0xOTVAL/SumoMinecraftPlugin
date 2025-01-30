@@ -5,6 +5,7 @@ import com.example.sumoplugin.arena.Arena;
 import com.example.sumoplugin.arena.ArenaManager;
 import com.example.sumoplugin.Sumo;
 import io.papermc.paper.event.player.*;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -20,6 +21,7 @@ public class attackListener implements Listener {
     @EventHandler
     public void PrePlayerAttackEntity(PrePlayerAttackEntityEvent event){
         if(!event.getPlayer().getInventory().getItemInMainHand().getType().name().equals("STICK"))return;
+        if(event.getAttacked().getType()!= EntityType.PLAYER)return;
         Arena arena=arenaManager.getArenaByPlayer(event.getPlayer());
         if(arena==null)return;
         if(!arena.isGameStarted)return;

@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class Sumo extends JavaPlugin implements Listener {
-    public List<ArenaData> arenas_list;
+    public List<ArenaData> arenas_list=new ArrayList<>();
     public ArenaManager arenaManager;
 
     @Override
@@ -39,6 +39,7 @@ public class Sumo extends JavaPlugin implements Listener {
         //load arenas from file
         File arenas = new File(getDataFolder(), "arena_list.json");
         try {
+            if(!arenas.exists())arenas.createNewFile();
             String jsonstring = FileUtils.readFileToString(arenas, Charset.defaultCharset());
             Gson g = new Gson();
             arenas_list = new ArrayList<>(Arrays.asList(g.fromJson(jsonstring, ArenaData[].class)));

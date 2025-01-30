@@ -5,6 +5,7 @@ import com.example.sumoplugin.arena.ArenaManager;
 import com.example.sumoplugin.Sumo;
 import com.example.sumoplugin.team.Team;
 import org.bukkit.Material;
+import org.bukkit.block.Banner;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -33,9 +34,11 @@ public class useListener implements Listener {
             return;
         }
         if(event.getItem().getType()== Material.SLIME_BALL ) {
-            arena.logoutPlayer(player);
+            if(arena.isGameStarted)arena.logoutPlayer(player);
+            else arena.returnPlayer(player);
             return;
         }
+        if(arena.getTeamByItem(event.getItem())==null)return;
         //get previous team and target team
         Team prev_team=arena.getTeamByPlayer(player);
         Team team=arena.getTeamByItem(event.getItem());

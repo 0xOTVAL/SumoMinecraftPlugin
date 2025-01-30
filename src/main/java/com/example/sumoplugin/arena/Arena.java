@@ -14,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
+import java.io.*;
 import java.util.*;
 
 import static java.lang.Math.max;
@@ -25,8 +26,8 @@ public class Arena {
 
     public Vector3f pos1,pos2,lobbypos,barrierPos1,barrierPos2;
     public Location respawn_loc=new Location(Bukkit.getWorld("world"),0,200,0);
-    public String name;
-    public World world;
+    public String name,worldname;
+    public World worldcopy;
     public Integer gameTime,activeGameTime;
     public Float barrierXSpeed;
     public Float barrierZSpeed;
@@ -43,7 +44,8 @@ public class Arena {
 
     public Arena(@NotNull ArenaData data){
         name = data.name;
-        world = Bukkit.getWorld(data.world);
+        //worldcopy = Bukkit.getWorld(data.world);
+        worldname=data.world;
 
         pos1=new Vector3f(Float.parseFloat(data.pos1.split(",")[0]),Float.parseFloat(data.pos1.split(",")[1]),Float.parseFloat(data.pos1.split(",")[2]));
         pos2=new Vector3f(Float.parseFloat(data.pos2.split(",")[0]),Float.parseFloat(data.pos2.split(",")[1]),Float.parseFloat(data.pos2.split(",")[2]));
@@ -73,10 +75,11 @@ public class Arena {
         //If arena is not started or game on arena has started we cannot add player
         if(!isStarted)return "Arena "+name+" has not started";
         if(isGameStarted)return "Can not join to started game";
+        if(players.contains(player))return "WTF?";
         //Add player to array
         players.add(player);
         //Teleport player to lobby
-        player.teleport(new Location(world,lobbypos.x,lobbypos.y,lobbypos.z));
+        player.teleport(new Location(worldcopy,lobbypos.x,lobbypos.y,lobbypos.z));
         //Backup player inventory
         playerInventory.put(player,player.getInventory().getContents());
         player.getInventory().clear();
@@ -134,7 +137,7 @@ public class Arena {
             //teleport player to its spawn
             Vector3f spawn=getTeamByPlayer(p).spawnpos;
             p.sendMessage(spawn.toString());
-            p.teleportAsync(new Location(world,spawn.x,spawn.y,spawn.z));
+            p.teleportAsync(new Location(worldcopy,spawn.x,spawn.y,spawn.z));
         }
         //after this time game will finish
         timer.schedule(new TimerTask() {
@@ -169,24 +172,32 @@ public class Arena {
         float barrierYWidth =Math.abs(barrierPos2.y-barrierPos1.y)/2;
         float barrierZWidth =Math.abs(barrierPos2.z-barrierPos1.z)/2;
 
-        world.spawnParticle(barrierParticle, barrierPos1.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, 0);
-        world.spawnParticle(barrierParticle, barrierPos2.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, 0);
+        worldcopy.spawnParticle(barrierParticle, barrierPos1.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, 0);
+        worldcopy.spawnParticle(barrierParticle, barrierPos2.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, 0);
 
-        world.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos1.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);
-        world.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos2.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);
+        worldcopy.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos1.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);
+        worldcopy.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos2.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);
     }
     private void stopGame(String reason){
+        Bukkit.getServer().getConsoleSender().sendMessage("Stop game was called");
         timer.cancel();
-        isGameStarted=false;
-        for(Player p : players){
+        while(!players.isEmpty()){
+            Player p=players.getFirst();
+            Bukkit.getServer().getConsoleSender().sendMessage(Integer.toString(players.size()));
             p.sendMessage(reason);
             if(reason.equals("teamWin"))p.showTitle(Title.title(Component.text("Team "+activeTeams.getFirst().name+" won",TextColor.color(activeTeams.getFirst().color.asRGB())),Component.text("")));
             if(reason.equals("timerEnd"))p.showTitle(Title.title(Component.text("There is no winner"),Component.text("")));
             returnPlayer(p);
         }
+        if(worldcopy!=null){
+            unloadWorld(worldcopy);
+            copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
+        }
+        else copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
         bar.removeAll();
         spectators.clear();
         activeTeams.clear();
+        isGameStarted=false;
     }
     public void returnPlayer(Player player){
         if(!players.contains(player))return;
@@ -203,6 +214,13 @@ public class Arena {
     }
     public String start(){
         if(isStarted)return "Arena is already started";
+        //create copy of arena world, if it already exists overwrite it
+        if(worldcopy!=null){
+            unloadWorld(worldcopy);
+            copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
+        }
+        else copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
+        worldcopy=Bukkit.getWorld(worldname+"_sumotmp");
         isStarted=true;
 
 
@@ -217,6 +235,10 @@ public class Arena {
     }
     public String stop(){
         if(!players.isEmpty())return "There are players on arena";
+        if(worldcopy!=null){
+            unloadWorld(worldcopy);
+            worldcopy.getWorldFolder().delete();
+        }
         isStarted=false;
         return "Arena "+name+" stopped";
     }
@@ -226,11 +248,12 @@ public class Arena {
                 barrierPos1.z<pos.z() && pos.z()<barrierPos2.z);
     }
     public void killPlayer(Player player){
+        getTeamByPlayer(player).removePlayer(player);
+        player.teleport(new Location(worldcopy,lobbypos.x,lobbypos.y,lobbypos.z));
+        player.showTitle(Title.title(Component.text("You died", TextColor.color(255,0,0)),Component.text("")));
+
         player.setGameMode(GameMode.SPECTATOR);
         spectators.add(player);
-        if( getTeamByPlayer(player)!=null)getTeamByPlayer(player).removePlayer(player);
-        player.teleport(new Location(world,lobbypos.x,lobbypos.y,lobbypos.z));
-        player.showTitle(Title.title(Component.text("You died", TextColor.color(255,0,0)),Component.text("")));
 
         activeTeams.removeIf(t -> t.players.isEmpty());
         if(activeTeams.size() == 1) {
@@ -253,4 +276,41 @@ public class Arena {
             stopGame("timerEnd");
         }
     }
+    private static void copyFileStructure(File source, File target){
+        try {
+            ArrayList<String> ignore = new ArrayList<>(Arrays.asList("uid.dat", "session.lock"));
+            if(!ignore.contains(source.getName())) {
+                if(source.isDirectory()) {
+                    if(!target.exists())
+                        if (!target.mkdirs())
+                            throw new IOException("Couldn't create world directory!");
+                    String files[] = source.list();
+                    for (String file : files) {
+                        File srcFile = new File(source, file);
+                        File destFile = new File(target, file);
+                        copyFileStructure(srcFile, destFile);
+                    }
+                } else {
+                    InputStream in = new FileInputStream(source);
+                    OutputStream out = new FileOutputStream(target);
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = in.read(buffer)) > 0)
+                        out.write(buffer, 0, length);
+                    in.close();
+                    out.close();
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public static boolean unloadWorld(World world) {
+        return world!=null && Bukkit.getServer().unloadWorld(world, false);
+    }
+    public static void copyWorld(World originalWorld, String newWorldName) {
+        copyFileStructure(originalWorld.getWorldFolder(), new File(Bukkit.getWorldContainer(), newWorldName));
+        new WorldCreator(newWorldName).createWorld();
+    }
+
 }
