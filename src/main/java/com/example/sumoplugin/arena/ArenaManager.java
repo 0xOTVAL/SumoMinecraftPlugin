@@ -1,5 +1,6 @@
 package com.example.sumoplugin.arena;
 
+import com.example.sumoplugin.Sumo;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -10,13 +11,24 @@ public class ArenaManager {
     public List<ArenaData> arenaDataList;
     public ArrayList<Arena> arenas=new ArrayList<>();
     public Location respawn_loc;
-
-    public ArenaManager(List<ArenaData> arenaDataList, Location respawn_loc){
-        this.arenaDataList = arenaDataList;
-        this.respawn_loc=respawn_loc;
+    Sumo plugin;
+    public ArenaManager(Sumo plugin){
+        this.plugin=plugin;
+        this.arenaDataList = plugin.arenas_list;
+        this.respawn_loc=plugin.respawnloc;
         for(ArenaData d: arenaDataList){
-            arenas.add(new Arena(d));
+            Arena a=new Arena(d,plugin);
+            a.respawn_loc=respawn_loc;
+            arenas.add(a);
+
         }
+    }
+
+    public Arena getArenaByWorld(String name){
+        for(Arena a: arenas){
+            if(a.worldcopy!=null && a.worldcopy.getName().equals(name))return a;
+        }
+        return null;
     }
     public Arena getArenaByName(String name){
         for(Arena a: arenas){
@@ -41,8 +53,9 @@ public class ArenaManager {
     }
     public void updateArenasData(){
         for(ArenaData d:arenaDataList){
-            Arena a =new Arena(d);
-            if(!arenas.contains(a))arenas.add(a);
+            Arena a=new Arena(d,plugin);
+            a.respawn_loc=respawn_loc;
+            arenas.add(a);
         }
     }
 }

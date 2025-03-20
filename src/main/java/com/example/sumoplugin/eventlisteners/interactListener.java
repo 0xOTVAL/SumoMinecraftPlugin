@@ -5,6 +5,7 @@ import com.example.sumoplugin.arena.ArenaManager;
 import com.example.sumoplugin.Sumo;
 import io.papermc.paper.event.player.PlayerOpenSignEvent;
 import net.kyori.adventure.text.TextComponent;
+import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 

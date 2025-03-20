@@ -17,6 +17,6 @@ public class blockBreakListener implements Listener {
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event){
         Arena arena=plugin.arenaManager.getArenaByPlayer(event.getPlayer());
-        if(arena!=null)event.setCancelled(true);
+        if(arena!=null && !arena.isGameStarted)event.setCancelled(true);
     }
 }

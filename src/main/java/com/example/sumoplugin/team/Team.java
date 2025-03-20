@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.joml.Vector3f;
 
@@ -43,6 +44,9 @@ public class Team {
             default -> new ItemStack(Material.ORANGE_BANNER);
 
         };
+        ItemMeta bannermeta=banner.getItemMeta();
+        bannermeta.setDisplayName("Join team "+name);
+        banner.setItemMeta(bannermeta);
         players=new ArrayList<Player>();
 
         ItemStack helmet=new ItemStack(Material.LEATHER_HELMET);

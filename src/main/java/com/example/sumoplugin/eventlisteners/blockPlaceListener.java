@@ -27,6 +27,7 @@ public class blockPlaceListener implements Listener {
             event.setCancelled(true);
             return;
         }
+        if(event.getBlockPlaced().getType()!=Material.GREEN_WOOL)return;
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
         {
             @Override

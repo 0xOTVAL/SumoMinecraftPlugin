@@ -1,24 +1,31 @@
 package com.example.sumoplugin.arena;
 
+import com.example.sumoplugin.Sumo;
 import com.example.sumoplugin.team.Team;
 import com.example.sumoplugin.team.TeamData;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
+import java.util.random.*;
 
 import java.io.*;
 import java.util.*;
 
-import static java.lang.Math.max;
-import static java.lang.Math.min;
+import static java.lang.Math.*;
 
 public class Arena {
     public Boolean isStarted=false;
@@ -41,8 +48,10 @@ public class Arena {
     public Timer timer;
     public BossBar bar;
     public Particle barrierParticle=Particle.DRAGON_BREATH;
+    Sumo plugin;
 
-    public Arena(@NotNull ArenaData data){
+    public Arena(@NotNull ArenaData data,Sumo plugin){
+        this.plugin=plugin;
         name = data.name;
         //worldcopy = Bukkit.getWorld(data.world);
         worldname=data.world;
@@ -78,6 +87,9 @@ public class Arena {
         if(players.contains(player))return "WTF?";
         //Add player to array
         players.add(player);
+        player.setHealth(player.getMaxHealth());
+        player.setFoodLevel(20);
+        player.setSaturation(20);
         //Teleport player to lobby
         player.teleport(new Location(worldcopy,lobbypos.x,lobbypos.y,lobbypos.z));
         //Backup player inventory
@@ -87,10 +99,18 @@ public class Arena {
         for(Team i:teams){
             player.getInventory().addItem(i.banner);
         }
-        player.getInventory().setItem(7,new ItemStack(Material.DIAMOND));
-        player.getInventory().setItem(8,new ItemStack(Material.SLIME_BALL));
+        ItemStack startgameitem=new ItemStack(Material.DIAMOND);
+        ItemMeta startgameitemmeta=startgameitem.getItemMeta();
+        startgameitemmeta.setDisplayName(ChatColor.BLUE+"Start game");
+        startgameitem.setItemMeta(startgameitemmeta);
+        ItemStack exititem=new ItemStack(Material.SLIME_BALL);
+        ItemMeta exititemmeta=exititem.getItemMeta();
+        exititemmeta.setDisplayName(ChatColor.RED+"Exit");
+        exititem.setItemMeta(exititemmeta);
+        player.getInventory().setItem(7,startgameitem);
+        player.getInventory().setItem(8,exititem);
         //Set player gamemode to survival
-        player.setGameMode(GameMode.SURVIVAL);
+        player.setGameMode(GameMode.ADVENTURE);
         return "You joined "+name;
     }
     public String startGame(){
@@ -98,12 +118,13 @@ public class Arena {
         if(!isStarted)return "Arena is not started";
 
         for(Player p : players){
+            p.setSaturation(5);
             Team t=getTeamByPlayer(p);
+            p.setGameMode(GameMode.SURVIVAL);
             if(t==null){
                 return "There are players with no team";
             }
             else{
-
                 if(!activeTeams.contains(t))activeTeams.add(t);
             }
         }
@@ -153,7 +174,7 @@ public class Arena {
                 activeGameTime-=1;
                 shrinkBarrier();
                 drawBarrier();
-                bar.setTitle(activeGameTime / 60 +":"+ activeGameTime % 60);
+                bar.setTitle(activeGameTime / 60 +" : "+ activeGameTime % 60);
                 bar.setProgress((double) activeGameTime /gameTime);
             }
         },0,1000);
@@ -181,26 +202,43 @@ public class Arena {
     private void stopGame(String reason){
         Bukkit.getServer().getConsoleSender().sendMessage("Stop game was called");
         timer.cancel();
-        while(!players.isEmpty()){
-            Player p=players.getFirst();
+        while(!players.isEmpty()) {
+            Player p = players.getFirst();
             Bukkit.getServer().getConsoleSender().sendMessage(Integer.toString(players.size()));
             p.sendMessage(reason);
-            if(reason.equals("teamWin"))p.showTitle(Title.title(Component.text("Team "+activeTeams.getFirst().name+" won",TextColor.color(activeTeams.getFirst().color.asRGB())),Component.text("")));
-            if(reason.equals("timerEnd"))p.showTitle(Title.title(Component.text("There is no winner"),Component.text("")));
+            if (reason.equals("teamWin"))
+                p.showTitle(Title.title(Component.text("Team " + activeTeams.getFirst().name + " won", TextColor.color(activeTeams.getFirst().color.asRGB())), Component.text("")));
+            if (reason.equals("timerEnd"))
+                p.showTitle(Title.title(Component.text("There is no winner"), Component.text("")));
             returnPlayer(p);
         }
-        if(worldcopy!=null){
-            unloadWorld(worldcopy);
-            copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
-        }
-        else copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
         bar.removeAll();
         spectators.clear();
         activeTeams.clear();
         isGameStarted=false;
+
+        if(worldcopy!=null){
+            unloadWorld(worldcopy);
+            File oldworld= new File( Bukkit.getWorld(worldname).getWorldFolder().getPath()+"_sumotmp");
+            deleteDirectory(oldworld);
+        }
+        copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
+        worldcopy=Bukkit.getWorld(worldname+"_sumotmp");
+        worldcopy.setTime(1000);
+    }
+    public void spawnBonus(){
+        Vector3f pos=teams.get((int)(Math.random()*10)%teams.size()).spawnpos;
+        FallingBlock bonus= worldcopy.spawnFallingBlock(new Location(worldcopy,pos.x,pos.y+10,pos.z),Material.DIAMOND_BLOCK.createBlockData());
+        bonus.setGravity(false);
+        bonus.setVelocity(Vector.fromJOML(new Vector3f(0,(float)-0.5,0)));
+    }
+    public void fillBonusInventory(Inventory inv){
+        inv.addItem(new ItemStack(Material.TNT));
+        inv.addItem(new ItemStack(Material.FLINT_AND_STEEL));
     }
     public void returnPlayer(Player player){
         if(!players.contains(player))return;
+        player.sendMessage("returnPlayer");
         //restore player inventory
         player.getInventory().setContents(playerInventory.get(player));
         playerInventory.remove(player);
@@ -208,7 +246,8 @@ public class Arena {
         if(bar!=null)if(bar.getPlayers().contains(player))bar.removePlayer(player);
         //teleport player to respawn location
         player.setGameMode(GameMode.SURVIVAL);
-        player.teleport(respawn_loc);
+        player.teleportAsync(respawn_loc);
+        player.setGameMode(GameMode.SURVIVAL);
 
         players.remove(player);
     }
@@ -217,12 +256,13 @@ public class Arena {
         //create copy of arena world, if it already exists overwrite it
         if(worldcopy!=null){
             unloadWorld(worldcopy);
-            copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
         }
-        else copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
+        File oldworld= new File( Bukkit.getWorld(worldname).getWorldFolder().getPath()+"_sumotmp");
+        deleteDirectory(oldworld);
+        copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
         worldcopy=Bukkit.getWorld(worldname+"_sumotmp");
         isStarted=true;
-
+        worldcopy.setTime(1000);
 
         barrierPos1.x=min(pos1.x,pos2.x);
         barrierPos1.y=min(pos1.y,pos2.y);
@@ -263,6 +303,7 @@ public class Arena {
         if (activeTeams.isEmpty()) {
             stopGame("timerEnd");
         }
+        spawnBonus();
     }
     public void logoutPlayer(Player player){
         if( getTeamByPlayer(player)!=null)getTeamByPlayer(player).removePlayer(player);
@@ -312,5 +353,13 @@ public class Arena {
         copyFileStructure(originalWorld.getWorldFolder(), new File(Bukkit.getWorldContainer(), newWorldName));
         new WorldCreator(newWorldName).createWorld();
     }
-
+    boolean deleteDirectory(File directoryToBeDeleted) {
+        File[] allContents = directoryToBeDeleted.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectory(file);
+            }
+        }
+        return directoryToBeDeleted.delete();
+    }
 }

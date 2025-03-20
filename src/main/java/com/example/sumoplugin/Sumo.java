@@ -22,7 +22,7 @@ import java.util.Objects;
 public class Sumo extends JavaPlugin implements Listener {
     public List<ArenaData> arenas_list=new ArrayList<>();
     public ArenaManager arenaManager;
-
+    public Location respawnloc;
     @Override
     public void onEnable() {
         //create data folder if not exists
@@ -35,7 +35,8 @@ public class Sumo extends JavaPlugin implements Listener {
         }catch (Exception e){
             e.printStackTrace();
         }
-        String respawnloc= getConfig().get("respawn_location").toString();
+        String respawn_loc= getConfig().get("respawn_location").toString();
+        respawnloc=new Location(Bukkit.getWorld(respawn_loc.split(",")[0]),Float.parseFloat(respawn_loc.split(",")[1]),Float.parseFloat(respawn_loc.split(",")[2]),Float.parseFloat(respawn_loc.split(",")[3]));
         //load arenas from file
         File arenas = new File(getDataFolder(), "arena_list.json");
         try {
@@ -48,7 +49,7 @@ public class Sumo extends JavaPlugin implements Listener {
         }
 
         //create arena manager
-        arenaManager=new ArenaManager(arenas_list,new Location(Bukkit.getWorld(respawnloc.split(",")[0]),Float.parseFloat(respawnloc.split(",")[1]),Float.parseFloat(respawnloc.split(",")[2]),Float.parseFloat(respawnloc.split(",")[3])));
+        arenaManager=new ArenaManager(this);
 
         //register command
         MainCommand mainCommand=new MainCommand(this);
@@ -62,5 +63,6 @@ public class Sumo extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new blockPlaceListener(this),this);
         Bukkit.getPluginManager().registerEvents(new logoutListener(this),this);
         Bukkit.getPluginManager().registerEvents(new blockBreakListener(this),this);
+        Bukkit.getPluginManager().registerEvents(new changeBlockListener(this),this);
     }
 }
