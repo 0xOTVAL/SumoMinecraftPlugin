@@ -41,7 +41,7 @@ public class blockPlaceListener implements Listener {
             @Override
             public void run()
             {
-                event.getBlockPlaced().setType(Material.RED_WOOL);
+                if(event.getBlockPlaced().getType()==Material.YELLOW_WOOL)event.getBlockPlaced().setType(Material.RED_WOOL);
             }
         }, 2*20L);
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()

@@ -81,6 +81,7 @@ public class Arena {
         return null;
     }
     public String addPlayer(Player player){
+        worldcopy.setTime(1000);
         //If arena is not started or game on arena has started we cannot add player
         if(!isStarted)return "Arena "+name+" has not started";
         if(isGameStarted)return "Can not join to started game";
@@ -164,7 +165,10 @@ public class Arena {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
+
+                cancel();
                 stopGame("timerEnd");
+
             }
         },gameTime*1000);
         //schedule bar and barrier update every second
@@ -202,10 +206,12 @@ public class Arena {
     private void stopGame(String reason){
         Bukkit.getServer().getConsoleSender().sendMessage("Stop game was called");
         timer.cancel();
+        timer.purge();
+
         while(!players.isEmpty()) {
             Player p = players.getFirst();
             Bukkit.getServer().getConsoleSender().sendMessage(Integer.toString(players.size()));
-            p.sendMessage(reason);
+         //   p.sendMessage(reason);
             if (reason.equals("teamWin"))
                 p.showTitle(Title.title(Component.text("Team " + activeTeams.getFirst().name + " won", TextColor.color(activeTeams.getFirst().color.asRGB())), Component.text("")));
             if (reason.equals("timerEnd"))
@@ -213,18 +219,26 @@ public class Arena {
             returnPlayer(p);
         }
         bar.removeAll();
-        spectators.clear();
+        if(!spectators.isEmpty())spectators.clear();
         activeTeams.clear();
         isGameStarted=false;
 
         if(worldcopy!=null){
             unloadWorld(worldcopy);
-            File oldworld= new File( Bukkit.getWorld(worldname).getWorldFolder().getPath()+"_sumotmp");
-            deleteDirectory(oldworld);
         }
+        File oldworld= new File( Bukkit.getWorld(worldname).getWorldFolder().getPath()+"_sumotmp");
+        deleteDirectory(oldworld);
         copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
-        worldcopy=Bukkit.getWorld(worldname+"_sumotmp");
-        worldcopy.setTime(1000);
+
+
+        barrierPos1.x=min(pos1.x,pos2.x);
+        barrierPos1.y=min(pos1.y,pos2.y);
+        barrierPos1.z=min(pos1.z,pos2.z);
+
+        barrierPos2.x=max(pos1.x,pos2.x);
+        barrierPos2.y=max(pos1.y,pos2.y);
+        barrierPos2.z=max(pos1.z,pos2.z);
+  //
     }
     public void spawnBonus(){
         Vector3f pos=teams.get((int)(Math.random()*10)%teams.size()).spawnpos;
@@ -303,7 +317,7 @@ public class Arena {
         if (activeTeams.isEmpty()) {
             stopGame("timerEnd");
         }
-        spawnBonus();
+        //spawnBonus();
     }
     public void logoutPlayer(Player player){
         if( getTeamByPlayer(player)!=null)getTeamByPlayer(player).removePlayer(player);

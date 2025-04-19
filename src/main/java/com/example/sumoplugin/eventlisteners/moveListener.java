@@ -8,6 +8,8 @@ import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.util.Vector;
+import org.joml.Vector3f;
 
 
 public class moveListener implements Listener{
@@ -28,6 +30,7 @@ public class moveListener implements Listener{
             if (!arena.isGameStarted) {
                 Location loc = new Location(arena.worldcopy, arena.lobbypos.x, arena.lobbypos.y, arena.lobbypos.z);
                 event.getPlayer().teleport(loc);
+                event.getPlayer().setVelocity(new Vector(0,0,0));
             }
             //if game started inflict damage to player
             else{

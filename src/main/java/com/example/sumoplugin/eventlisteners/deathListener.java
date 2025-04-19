@@ -19,6 +19,7 @@ public class deathListener implements Listener {
         Arena arena=arenaManager.getArenaByPlayer(event.getPlayer());
         if(arena==null)return;
         if(!arena.isGameStarted){
+            event.setCancelled(true);
             return;
         }
         arena.killPlayer(event.getPlayer());
