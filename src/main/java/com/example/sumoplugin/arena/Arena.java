@@ -165,7 +165,6 @@ public class Arena {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-
                 cancel();
                 stopGame("timerEnd");
 
@@ -178,6 +177,10 @@ public class Arena {
                 activeGameTime-=1;
                 shrinkBarrier();
                 drawBarrier();
+                //Чистим погоду и задаем время на день каждую секунду, надеюсь это не жрет слишком много ресурсов
+                worldcopy.setTime(1000);
+                worldcopy.setStorm(false);
+                worldcopy.setThundering(false);
                 bar.setTitle(activeGameTime / 60 +" : "+ activeGameTime % 60);
                 bar.setProgress((double) activeGameTime /gameTime);
             }
@@ -323,6 +326,7 @@ public class Arena {
         if( getTeamByPlayer(player)!=null)getTeamByPlayer(player).removePlayer(player);
         activeTeams.removeIf(t -> t.players.isEmpty());
         returnPlayer(player);
+        if(!isGameStarted)return;
         if(activeTeams.size() == 1) {
             stopGame("teamWin");
             return;
