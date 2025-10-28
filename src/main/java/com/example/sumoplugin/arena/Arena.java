@@ -417,7 +417,6 @@ public class Arena {
                 return name.startsWith(worldname+"_sumotmp");
             }
         });
-        Bukkit.getConsoleSender().sendMessage(files.toString());
         for(File f:files){
             deleteDirectory(f);
         }
