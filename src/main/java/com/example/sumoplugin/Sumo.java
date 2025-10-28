@@ -64,7 +64,6 @@ public class Sumo extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new logoutListener(this),this);
         Bukkit.getPluginManager().registerEvents(new blockBreakListener(this),this);
         Bukkit.getPluginManager().registerEvents(new dropItemListener(this),this);
-
         Bukkit.getPluginManager().registerEvents(new changeBlockListener(this),this);
     }
 }

@@ -3,6 +3,7 @@ package com.example.sumoplugin.arena;
 import com.example.sumoplugin.Sumo;
 import com.example.sumoplugin.team.Team;
 import com.example.sumoplugin.team.TeamData;
+import joptsimple.internal.Reflection;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
@@ -11,6 +12,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -20,8 +22,9 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
-import java.util.random.*;
 
+import java.lang.reflect.Field;
+import java.util.random.*;
 import java.io.*;
 import java.util.*;
 
@@ -47,13 +50,15 @@ public class Arena {
 
     public Timer timer;
     public BossBar bar;
+    public WorldBorder border;
     public Particle barrierParticle=Particle.DRAGON_BREATH;
     Sumo plugin;
+    //Термоядерный костыль для нормальной перезагрузки мира
+    int worldcopyindex=0;
 
     public Arena(@NotNull ArenaData data,Sumo plugin){
         this.plugin=plugin;
         name = data.name;
-        //worldcopy = Bukkit.getWorld(data.world);
         worldname=data.world;
 
         pos1=new Vector3f(Float.parseFloat(data.pos1.split(",")[0]),Float.parseFloat(data.pos1.split(",")[1]),Float.parseFloat(data.pos1.split(",")[2]));
@@ -67,6 +72,8 @@ public class Arena {
         barrierPos1=new Vector3f();
         barrierPos2=new Vector3f();
 
+        //Чистим директории прошлых арен чтобы не возникало ошибок
+        clearOldWorldsDirectorys();
     }
     public Team getTeamByPlayer(Player player){
         for(Team t: teams){
@@ -159,6 +166,7 @@ public class Arena {
             //teleport player to its spawn
             Vector3f spawn=getTeamByPlayer(p).spawnpos;
             p.sendMessage(spawn.toString());
+            p.setWorldBorder(border);
             p.teleportAsync(new Location(worldcopy,spawn.x,spawn.y,spawn.z));
         }
         //after this time game will finish
@@ -176,11 +184,8 @@ public class Arena {
             public void run() {
                 activeGameTime-=1;
                 shrinkBarrier();
-                drawBarrier();
-                //Чистим погоду и задаем время на день каждую секунду, надеюсь это не жрет слишком много ресурсов
-                worldcopy.setTime(1000);
-                worldcopy.setStorm(false);
-                worldcopy.setThundering(false);
+                // drawBarrier();
+
                 bar.setTitle(activeGameTime / 60 +" : "+ activeGameTime % 60);
                 bar.setProgress((double) activeGameTime /gameTime);
             }
@@ -213,7 +218,6 @@ public class Arena {
 
         while(!players.isEmpty()) {
             Player p = players.getFirst();
-            Bukkit.getServer().getConsoleSender().sendMessage(Integer.toString(players.size()));
          //   p.sendMessage(reason);
             if (reason.equals("teamWin"))
                 p.showTitle(Title.title(Component.text("Team " + activeTeams.getFirst().name + " won", TextColor.color(activeTeams.getFirst().color.asRGB())), Component.text("")));
@@ -229,10 +233,19 @@ public class Arena {
         if(worldcopy!=null){
             unloadWorld(worldcopy);
         }
+        worldcopyindex++;
         File oldworld= new File( Bukkit.getWorld(worldname).getWorldFolder().getPath()+"_sumotmp");
         deleteDirectory(oldworld);
-        copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
+        copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp_"+worldcopyindex);
+        worldcopy=Bukkit.getWorld(worldname+"_sumotmp_"+worldcopyindex);
 
+        worldcopy.setTime(1000);
+        worldcopy.setStorm(false);
+        worldcopy.setThundering(false);
+        worldcopy.setGameRule(GameRule.DO_DAYLIGHT_CYCLE,false);
+        worldcopy.setGameRule(GameRule.DO_MOB_SPAWNING,false);
+        worldcopy.setGameRule(GameRule.DO_WEATHER_CYCLE,false);
+        worldcopy.setGameRule(GameRule.MOB_GRIEFING,false);
 
         barrierPos1.x=min(pos1.x,pos2.x);
         barrierPos1.y=min(pos1.y,pos2.y);
@@ -265,6 +278,7 @@ public class Arena {
         player.setGameMode(GameMode.SURVIVAL);
         player.teleportAsync(respawn_loc);
         player.setGameMode(GameMode.SURVIVAL);
+        player.setWorldBorder(null);
 
         players.remove(player);
     }
@@ -276,10 +290,16 @@ public class Arena {
         }
         File oldworld= new File( Bukkit.getWorld(worldname).getWorldFolder().getPath()+"_sumotmp");
         deleteDirectory(oldworld);
-        copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp");
-        worldcopy=Bukkit.getWorld(worldname+"_sumotmp");
+        copyWorld(Bukkit.getWorld(worldname),worldname+"_sumotmp_"+worldcopyindex);
+        worldcopy=Bukkit.getWorld(worldname+"_sumotmp_"+worldcopyindex);
         isStarted=true;
         worldcopy.setTime(1000);
+        worldcopy.setStorm(false);
+        worldcopy.setThundering(false);
+        worldcopy.setGameRule(GameRule.DO_DAYLIGHT_CYCLE,false);
+        worldcopy.setGameRule(GameRule.DO_MOB_SPAWNING,false);
+        worldcopy.setGameRule(GameRule.DO_WEATHER_CYCLE,false);
+        worldcopy.setGameRule(GameRule.MOB_GRIEFING,false);
 
         barrierPos1.x=min(pos1.x,pos2.x);
         barrierPos1.y=min(pos1.y,pos2.y);
@@ -288,6 +308,14 @@ public class Arena {
         barrierPos2.x=max(pos1.x,pos2.x);
         barrierPos2.y=max(pos1.y,pos2.y);
         barrierPos2.z=max(pos1.z,pos2.z);
+
+        border = Bukkit.createWorldBorder();
+        border.setCenter(new Location(worldcopy,(barrierPos2.x+barrierPos1.x)/2,(barrierPos2.y-barrierPos1.y)/2,(barrierPos2.z+barrierPos1.z)/2));
+        border.setSize(max(barrierPos2.x-barrierPos1.x,barrierPos2.z-barrierPos1.z));
+        border.setDamageAmount(Integer.parseInt(plugin.getConfig().get("barrier_damage").toString()));
+        border.setWarningDistance(0);
+        border.setDamageBuffer(0);
+
         return "Arena "+name+" has started";
     }
     public String stop(){
@@ -365,13 +393,14 @@ public class Arena {
         }
     }
     public static boolean unloadWorld(World world) {
-        return world!=null && Bukkit.getServer().unloadWorld(world, false);
+        Bukkit.getServer().unloadWorld(world, false);
+        return world!=null;
     }
     public static void copyWorld(World originalWorld, String newWorldName) {
         copyFileStructure(originalWorld.getWorldFolder(), new File(Bukkit.getWorldContainer(), newWorldName));
         new WorldCreator(newWorldName).createWorld();
     }
-    boolean deleteDirectory(File directoryToBeDeleted) {
+    private boolean deleteDirectory(File directoryToBeDeleted) {
         File[] allContents = directoryToBeDeleted.listFiles();
         if (allContents != null) {
             for (File file : allContents) {
@@ -379,5 +408,18 @@ public class Arena {
             }
         }
         return directoryToBeDeleted.delete();
+    }
+    private void clearOldWorldsDirectorys(){
+        File dir = Bukkit.getWorldContainer();
+        File [] files = dir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.startsWith(worldname+"_sumotmp");
+            }
+        });
+        Bukkit.getConsoleSender().sendMessage(files.toString());
+        for(File f:files){
+            deleteDirectory(f);
+        }
     }
 }
