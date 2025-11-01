@@ -5,6 +5,7 @@ import com.example.sumoplugin.arena.ArenaManager;
 import com.example.sumoplugin.command.MainCommand;
 import com.example.sumoplugin.arena.ArenaData;
 import com.example.sumoplugin.eventlisteners.*;
+import com.example.sumoplugin.team.TeamManager;
 import com.google.gson.Gson;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
@@ -22,6 +23,7 @@ import java.util.Objects;
 public class Sumo extends JavaPlugin implements Listener {
     public List<ArenaData> arenas_list=new ArrayList<>();
     public ArenaManager arenaManager;
+    public TeamManager teamManager;
     public Location respawnloc;
     @Override
     public void onEnable() {
@@ -50,7 +52,8 @@ public class Sumo extends JavaPlugin implements Listener {
 
         //create arena manager
         arenaManager=new ArenaManager(this);
-
+        //create team manager
+        teamManager=new TeamManager(this);
         //register command
         MainCommand mainCommand=new MainCommand(this);
         Objects.requireNonNull(this.getCommand("sumo")).setExecutor(mainCommand.base);
@@ -65,5 +68,6 @@ public class Sumo extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(new blockBreakListener(this),this);
         Bukkit.getPluginManager().registerEvents(new dropItemListener(this),this);
         Bukkit.getPluginManager().registerEvents(new changeBlockListener(this),this);
+        Bukkit.getPluginManager().registerEvents(new inventoryClickListener(this),this);
     }
 }

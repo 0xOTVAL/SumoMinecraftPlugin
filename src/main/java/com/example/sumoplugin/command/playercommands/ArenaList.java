@@ -18,14 +18,6 @@ public class ArenaList  extends SubCommand {
     public void runCommand(CommandSender sender, Command baseCommand, String baseCommandLabel, String subCommandLabel, String[] subCommandArgs) {
         for(ArenaData d: plugin.arenaManager.arenaDataList){
             sender.sendMessage(d.name+" "+d.world+" "+d.pos1+" "+d.pos2+" "+d.lobbypos+" "+d.gameTime);
-            for(TeamData td: d.teams){
-                sender.sendMessage(td.name+" "+td.color+" "+td.spawnpos);
-            }
-        }
-        for(Arena a:plugin.arenaManager.arenas){
-            for(Team t:a.teams){
-                sender.sendMessage(t.banner.displayName());
-            }
         }
     }
     @Override

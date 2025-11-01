@@ -12,9 +12,9 @@ import org.bukkit.util.Vector;
 
 import java.util.Objects;
 
-public class SetTeamSpawn extends SubCommand {
+public class AddTeamSpawn extends SubCommand {
     Sumo plugin;
-    public SetTeamSpawn(Sumo plugin){
+    public AddTeamSpawn(Sumo plugin){
         this.plugin=plugin;
     }
     @Override
@@ -24,7 +24,6 @@ public class SetTeamSpawn extends SubCommand {
             sender.sendMessage("Arena "+subCommandArgs[0]+" does not exist");
             return;
         }
-        TeamData teamData=arenaData.getTeamDataByName(subCommandArgs[2]);
         Player player= Objects.requireNonNull(Bukkit.getPlayer(sender.getName()));
         Vector playerPos=player.getLocation().toVector();
         if(arenaData.world.isEmpty()){
@@ -34,11 +33,11 @@ public class SetTeamSpawn extends SubCommand {
             sender.sendMessage("Team spawn must be in same world");
             return;
         }
-        teamData.spawnpos= playerPos.toString();
+        arenaData.spawnpos.add(playerPos.toString());
     }
     @Override
     public boolean canExecute(CommandSender sender, Command baseCommand, String baseCommandLabel, String subCommandLabel, String[] subCommandArgs) {
-        if(subCommandArgs.length!=3)return false;
+        if(subCommandArgs.length!=2)return false;
         return ((sender instanceof Player) && subCommandLabel.equals("arena") && subCommandArgs[1].equals("teamspawn"));
     }
 }

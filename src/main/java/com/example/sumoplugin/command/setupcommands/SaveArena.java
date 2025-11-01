@@ -22,7 +22,7 @@ public class SaveArena extends SubCommand {
         try {
             Gson g = new Gson();
             for(ArenaData d: plugin.arenaManager.arenaDataList){
-                if(d.name.isEmpty() || d.teams.isEmpty() || d.world.isEmpty() || d.pos1.isEmpty() || d.pos2.isEmpty() || d.lobbypos.isEmpty() || d.gameTime==-1){
+                if(d.name.isEmpty() || d.spawnpos.isEmpty() || d.world.isEmpty() || d.pos1.isEmpty() || d.pos2.isEmpty() || d.lobbypos.isEmpty() || d.gameTime==-1){
                     sender.sendMessage("Arena "+d.name+" is incomplete, not saving");
                     return;
                 }

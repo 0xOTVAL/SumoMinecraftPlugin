@@ -2,29 +2,20 @@ package com.example.sumoplugin.arena;
 
 import com.example.sumoplugin.Sumo;
 import com.example.sumoplugin.team.Team;
-import com.example.sumoplugin.team.TeamData;
-import joptsimple.internal.Reflection;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
+import net.minecraft.network.chat.ChatDecorator;
 import org.bukkit.*;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
-import org.bukkit.craftbukkit.CraftWorld;
-import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.util.Vector;
+import org.bukkit.scoreboard.*;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3d;
 import org.joml.Vector3f;
-
-import java.lang.reflect.Field;
-import java.util.random.*;
 import java.io.*;
 import java.util.*;
 
@@ -43,15 +34,18 @@ public class Arena {
     public Float barrierZSpeed;
 
     public ArrayList<Player> players=new ArrayList<>();
-    public ArrayList<Team> teams=new ArrayList<>();
-    public ArrayList<Team> activeTeams=new ArrayList<>();
+    public ArrayList<Team> teams =new ArrayList<>();
     public ArrayList<Player> spectators=new ArrayList<>();
+    public ArrayList<Vector3f> spawns=new ArrayList<>();
+    public HashMap<Team,Vector3f> teamspawns=new HashMap<>();
     public HashMap<Player, ItemStack[]> playerInventory=new HashMap<>();
+   // public ArrayList<org.bukkit.scoreboard.Team> scoreboardTeams=new ArrayList<>();
 
     public Timer timer;
     public BossBar bar;
-    public WorldBorder border;
-    public Particle barrierParticle=Particle.DRAGON_BREATH;
+    public Scoreboard board;
+    public Objective boardObj;
+    public Particle barrierParticle=Particle.FIREWORK;
     Sumo plugin;
     //Термоядерный костыль для нормальной перезагрузки мира
     int worldcopyindex=0;
@@ -66,29 +60,16 @@ public class Arena {
         lobbypos=new Vector3f(Float.parseFloat(data.lobbypos.split(",")[0]),Float.parseFloat(data.lobbypos.split(",")[1]),Float.parseFloat(data.lobbypos.split(",")[2]));
 
         gameTime= data.gameTime;
-        for(TeamData td: data.teams){
-            teams.add(new Team(td));
-        }
         barrierPos1=new Vector3f();
         barrierPos2=new Vector3f();
 
+        for(String s:data.spawnpos){
+            spawns.add(new Vector3f(Float.parseFloat(s.split(",")[0]),Float.parseFloat(s.split(",")[1]),Float.parseFloat(s.split(",")[2])));
+        }
         //Чистим директории прошлых арен чтобы не возникало ошибок
         clearOldWorldsDirectorys();
     }
-    public Team getTeamByPlayer(Player player){
-        for(Team t: teams){
-            if(t.players.contains(player))return t;
-        }
-        return null;
-    }
-    public Team getTeamByItem(ItemStack item){
-        for(Team t: teams){
-            if(t.banner.getType()==item.getType())return t;
-        }
-        return null;
-    }
     public String addPlayer(Player player){
-        worldcopy.setTime(1000);
         //If arena is not started or game on arena has started we cannot add player
         if(!isStarted)return "Arena "+name+" has not started";
         if(isGameStarted)return "Can not join to started game";
@@ -99,16 +80,17 @@ public class Arena {
         player.setFoodLevel(20);
         player.setSaturation(20);
         //Teleport player to lobby
+        plugin.getServer().getConsoleSender().sendMessage(lobbypos.toString());
         player.teleport(new Location(worldcopy,lobbypos.x,lobbypos.y,lobbypos.z));
         //Backup player inventory
         playerInventory.put(player,player.getInventory().getContents());
         player.getInventory().clear();
         //Add team banners to players inventory
-        for(Team i:teams){
+        /*for(Team i:teams){
             player.getInventory().addItem(i.banner);
         }
         ItemStack startgameitem=new ItemStack(Material.DIAMOND);
-        ItemMeta startgameitemmeta=startgameitem.getItemMeta();
+        //ItemMeta startgameitemmeta=startgameitem.getItemMeta();
         startgameitemmeta.setDisplayName(ChatColor.BLUE+"Start game");
         startgameitem.setItemMeta(startgameitemmeta);
         ItemStack exititem=new ItemStack(Material.SLIME_BALL);
@@ -116,10 +98,40 @@ public class Arena {
         exititemmeta.setDisplayName(ChatColor.RED+"Exit");
         exititem.setItemMeta(exititemmeta);
         player.getInventory().setItem(7,startgameitem);
-        player.getInventory().setItem(8,exititem);
-        //Set player gamemode to survival
+        player.getInventory().setItem(8,exititem);*/
+        //Set player gamemode to adventure
         player.setGameMode(GameMode.ADVENTURE);
         return "You joined "+name;
+    }
+    public void addTeam(Team t){
+        if(teams.contains(t))return;
+        t.reset();
+        teams.add(t);
+        org.bukkit.scoreboard.Team st= board.registerNewTeam(t.name);
+        st.setDisplayName(t.name);
+        teamspawns.put(t,spawns.get(teams.size()-1));
+        for(Player p: t.players){
+            addPlayer(p);
+            st.addPlayer(p);
+            p.setScoreboard(board);
+            p.getInventory().setArmorContents(t.armor);
+        }
+        t.isUsed=true;
+
+    }
+    public void delTeam(Team t){
+        if(isGameStarted)return;
+        for(Player p: t.players){
+            board.getTeam(t.name).removePlayer(p);
+            returnPlayer(p);
+        }
+        teams.remove(t);
+        teamspawns.clear();
+        for(int i=0;i<teams.size();i++){
+            teamspawns.put(teams.get(i),spawns.get(i));
+        }
+        t.isUsed=false;
+        Objects.requireNonNull(board.getTeam(t.name)).unregister();
     }
     public String startGame(){
         if(players.isEmpty())return "Can not start arena with no players";
@@ -127,26 +139,19 @@ public class Arena {
 
         for(Player p : players){
             p.setSaturation(5);
-            Team t=getTeamByPlayer(p);
             p.setGameMode(GameMode.SURVIVAL);
-            if(t==null){
-                return "There are players with no team";
-            }
-            else{
-                if(!activeTeams.contains(t))activeTeams.add(t);
-            }
         }
 
-        if(activeTeams.size()<2){
-            activeTeams.clear();
+        if(teams.size()<2){
+            teams.clear();
             return "There must be at least 2 teams with players in them";
         }
 
         timer=new Timer();
         activeGameTime=gameTime;
 
-        barrierXSpeed=Math.abs(barrierPos2.x-barrierPos1.x-2)/(2*gameTime);
-        barrierZSpeed=Math.abs(barrierPos2.z-barrierPos1.z-2)/(2*gameTime);
+        barrierXSpeed=Math.abs(barrierPos2.x-barrierPos1.x-10)/(2*gameTime);
+        barrierZSpeed=Math.abs(barrierPos2.z-barrierPos1.z-10)/(2*gameTime);
 
         //create bar that will show remaining time
         bar=Bukkit.getServer().createBossBar(gameTime / 60 +":"+ gameTime % 60, BarColor.BLUE, BarStyle.SOLID);
@@ -164,9 +169,8 @@ public class Arena {
             //add bar to player
             bar.addPlayer(p);
             //teleport player to its spawn
-            Vector3f spawn=getTeamByPlayer(p).spawnpos;
+            Vector3f spawn=teamspawns.get(plugin.teamManager.getTeamByPlayer(p));
             p.sendMessage(spawn.toString());
-            p.setWorldBorder(border);
             p.teleportAsync(new Location(worldcopy,spawn.x,spawn.y,spawn.z));
         }
         //after this time game will finish
@@ -174,22 +178,27 @@ public class Arena {
             @Override
             public void run() {
                 cancel();
-                stopGame("timerEnd");
-
+                Bukkit.getScheduler().runTask(plugin, new Runnable() {
+                    @Override
+                    public void run() {
+                        stopGame("timerEnd");
+                    }
+                });
             }
         },gameTime*1000);
+        //Задаём параметры барьера
         //schedule bar and barrier update every second
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
                 activeGameTime-=1;
                 shrinkBarrier();
-                // drawBarrier();
-
+                drawBarrier();
                 bar.setTitle(activeGameTime / 60 +" : "+ activeGameTime % 60);
                 bar.setProgress((double) activeGameTime /gameTime);
             }
         },0,1000);
+
         isGameStarted=true;
         return "Game on arena "+name+" started successful";
     }
@@ -201,15 +210,32 @@ public class Arena {
         barrierPos2.z-=barrierZSpeed;
     }
     private void drawBarrier(){
-        float barrierXWidth=Math.abs(barrierPos2.x-barrierPos1.x)/2;
+        float barrierXWidth=Math.abs(barrierPos2.x-barrierPos1.x)/4;
         float barrierYWidth =Math.abs(barrierPos2.y-barrierPos1.y)/2;
-        float barrierZWidth =Math.abs(barrierPos2.z-barrierPos1.z)/2;
+        float barrierZWidth =Math.abs(barrierPos2.z-barrierPos1.z)/4;
 
-        worldcopy.spawnParticle(barrierParticle, barrierPos1.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, 0);
+        worldcopy.spawnParticle(barrierParticle,barrierPos1.x,barrierPos1.y,(barrierPos1.z+barrierPos2.z)/2,300,0.2,0.2,barrierZWidth,0);
+        worldcopy.spawnParticle(barrierParticle,barrierPos1.x,barrierPos2.y,(barrierPos1.z+barrierPos2.z)/2,300,0.2,0.2,barrierZWidth,0);
+
+        worldcopy.spawnParticle(barrierParticle,barrierPos2.x,barrierPos1.y,(barrierPos1.z+barrierPos2.z)/2,300,0.2,0.2,barrierZWidth,0);
+        worldcopy.spawnParticle(barrierParticle,barrierPos2.x,barrierPos2.y,(barrierPos1.z+barrierPos2.z)/2,300,0.2,0.2,barrierZWidth,0);
+
+        worldcopy.spawnParticle(barrierParticle,(barrierPos1.x+barrierPos2.x)/2,barrierPos1.y,barrierPos1.z,300,barrierXWidth,0.2,0.2,0);
+        worldcopy.spawnParticle(barrierParticle,(barrierPos1.x+barrierPos2.x)/2,barrierPos2.y,barrierPos1.z,300,barrierXWidth,0.2,0.2,0);
+
+        worldcopy.spawnParticle(barrierParticle,(barrierPos1.x+barrierPos2.x)/2,barrierPos1.y,barrierPos2.z,300,barrierXWidth,0.2,0.2,0);
+        worldcopy.spawnParticle(barrierParticle,(barrierPos1.x+barrierPos2.x)/2,barrierPos2.y,barrierPos2.z,300,barrierXWidth,0.2,0.2,0);
+
+        worldcopy.spawnParticle(barrierParticle,barrierPos1.x,(barrierPos1.y+barrierPos2.y)/2,barrierPos1.z,300,0.2,barrierYWidth,0.2,0);
+        worldcopy.spawnParticle(barrierParticle,barrierPos1.x,(barrierPos1.y+barrierPos2.y)/2,barrierPos2.z,300,0.2,barrierYWidth,0.2,0);
+
+        worldcopy.spawnParticle(barrierParticle,barrierPos2.x,(barrierPos1.y+barrierPos2.y)/2,barrierPos1.z,300,0.2,barrierYWidth,0.2,0);
+        worldcopy.spawnParticle(barrierParticle,barrierPos2.x,(barrierPos1.y+barrierPos2.y)/2,barrierPos2.z,300,0.2,barrierYWidth,0.2,0);
+        /*worldcopy.spawnParticle(barrierParticle, barrierPos1.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, 0);
         worldcopy.spawnParticle(barrierParticle, barrierPos2.x, (barrierPos1.y+barrierPos2.y)/2, (barrierPos1.z+barrierPos2.z)/2, 3000, 0.2, barrierYWidth, barrierZWidth, 0);
 
         worldcopy.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos1.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);
-        worldcopy.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos2.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);
+        worldcopy.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos2.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);*/
     }
     private void stopGame(String reason){
         Bukkit.getServer().getConsoleSender().sendMessage("Stop game was called");
@@ -220,14 +246,19 @@ public class Arena {
             Player p = players.getFirst();
          //   p.sendMessage(reason);
             if (reason.equals("teamWin"))
-                p.showTitle(Title.title(Component.text("Team " + activeTeams.getFirst().name + " won", TextColor.color(activeTeams.getFirst().color.asRGB())), Component.text("")));
+                p.showTitle(Title.title(Component.text("Team " + teams.getFirst().name + " won", TextColor.color(teams.getFirst().color.asRGB())), Component.text("")));
             if (reason.equals("timerEnd"))
                 p.showTitle(Title.title(Component.text("There is no winner"), Component.text("")));
             returnPlayer(p);
         }
         bar.removeAll();
         if(!spectators.isEmpty())spectators.clear();
-        activeTeams.clear();
+
+        for(Team t:teams){
+            t.isUsed=false;
+        }
+        teams.clear();
+
         isGameStarted=false;
 
         if(worldcopy!=null){
@@ -254,13 +285,8 @@ public class Arena {
         barrierPos2.x=max(pos1.x,pos2.x);
         barrierPos2.y=max(pos1.y,pos2.y);
         barrierPos2.z=max(pos1.z,pos2.z);
-  //
-    }
-    public void spawnBonus(){
-        Vector3f pos=teams.get((int)(Math.random()*10)%teams.size()).spawnpos;
-        FallingBlock bonus= worldcopy.spawnFallingBlock(new Location(worldcopy,pos.x,pos.y+10,pos.z),Material.DIAMOND_BLOCK.createBlockData());
-        bonus.setGravity(false);
-        bonus.setVelocity(Vector.fromJOML(new Vector3f(0,(float)-0.5,0)));
+
+        board=Bukkit.getScoreboardManager().getNewScoreboard();
     }
     public void fillBonusInventory(Inventory inv){
         inv.addItem(new ItemStack(Material.TNT));
@@ -272,14 +298,12 @@ public class Arena {
         //restore player inventory
         player.getInventory().setContents(playerInventory.get(player));
         playerInventory.remove(player);
-        if(getTeamByPlayer(player)!=null)getTeamByPlayer(player).removePlayer(player);
         if(bar!=null)if(bar.getPlayers().contains(player))bar.removePlayer(player);
         //teleport player to respawn location
         player.setGameMode(GameMode.SURVIVAL);
         player.teleportAsync(respawn_loc);
         player.setGameMode(GameMode.SURVIVAL);
-        player.setWorldBorder(null);
-
+        player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
         players.remove(player);
     }
     public String start(){
@@ -309,12 +333,7 @@ public class Arena {
         barrierPos2.y=max(pos1.y,pos2.y);
         barrierPos2.z=max(pos1.z,pos2.z);
 
-        border = Bukkit.createWorldBorder();
-        border.setCenter(new Location(worldcopy,(barrierPos2.x+barrierPos1.x)/2,(barrierPos2.y-barrierPos1.y)/2,(barrierPos2.z+barrierPos1.z)/2));
-        border.setSize(max(barrierPos2.x-barrierPos1.x,barrierPos2.z-barrierPos1.z));
-        border.setDamageAmount(Integer.parseInt(plugin.getConfig().get("barrier_damage").toString()));
-        border.setWarningDistance(0);
-        border.setDamageBuffer(0);
+        board=Bukkit.getScoreboardManager().getNewScoreboard();
 
         return "Arena "+name+" has started";
     }
@@ -333,33 +352,40 @@ public class Arena {
                 barrierPos1.z<pos.z() && pos.z()<barrierPos2.z);
     }
     public void killPlayer(Player player){
-        getTeamByPlayer(player).removePlayer(player);
         player.teleport(new Location(worldcopy,lobbypos.x,lobbypos.y,lobbypos.z));
         player.showTitle(Title.title(Component.text("You died", TextColor.color(255,0,0)),Component.text("")));
 
         player.setGameMode(GameMode.SPECTATOR);
         spectators.add(player);
 
-        activeTeams.removeIf(t -> t.players.isEmpty());
-        if(activeTeams.size() == 1) {
+        Team t=plugin.teamManager.getTeamByPlayer(player);
+        t.killPlayer(player);
+        if(t.players.size()==t.deadPlayers.size() || t.players.isEmpty()){
+            t.isUsed=false;
+            teams.remove(t);
+        }
+        if(teams.size() == 1) {
             stopGame("teamWin");
             return;
         }
-        if (activeTeams.isEmpty()) {
+        if (teams.isEmpty()) {
             stopGame("timerEnd");
         }
-        //spawnBonus();
     }
     public void logoutPlayer(Player player){
-        if( getTeamByPlayer(player)!=null)getTeamByPlayer(player).removePlayer(player);
-        activeTeams.removeIf(t -> t.players.isEmpty());
+        Team t=plugin.teamManager.getTeamByPlayer(player);
+        t.removePlayer(player);
+        if(t.players.size()==t.deadPlayers.size() || t.players.isEmpty()){
+            t.isUsed=false;
+            teams.remove(t);
+        }
         returnPlayer(player);
         if(!isGameStarted)return;
-        if(activeTeams.size() == 1) {
+        if(teams.size() == 1) {
             stopGame("teamWin");
             return;
         }
-        if (activeTeams.isEmpty()) {
+        if (teams.isEmpty()) {
             stopGame("timerEnd");
         }
     }

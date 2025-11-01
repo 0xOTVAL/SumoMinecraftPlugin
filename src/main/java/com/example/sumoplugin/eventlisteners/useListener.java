@@ -3,6 +3,7 @@ package com.example.sumoplugin.eventlisteners;
 import com.example.sumoplugin.arena.Arena;
 import com.example.sumoplugin.arena.ArenaManager;
 import com.example.sumoplugin.Sumo;
+import com.example.sumoplugin.menu.AdminMenu;
 import com.example.sumoplugin.team.Team;
 import org.bukkit.Material;
 import org.bukkit.block.Banner;
@@ -24,11 +25,20 @@ public class useListener implements Listener {
         //get arena and player
         Player player=event.getPlayer();
         Arena arena=arenaManager.getArenaByPlayer(player);
+        if(event.getItem()==null)return;
+        if(event.getItem().getType()== Material.ENDER_PEARL){// && event.getItem().getItemMeta().itemName().toString().equals("Admin menu")){
+            AdminMenu m=new AdminMenu(plugin);
+            event.getPlayer().openInventory(m.menuInventory);
+            event.setCancelled(true);
+            return;
+        }
         //we don't want to do anything if: 1)player is not on arena 2)arena is not started 3)game is already started
-        if(arena==null)return;
+      /*  if(arena==null)return;
         if(!arena.isStarted)return;
         if(arena.isGameStarted)return;
         if(event.getItem()==null)return;
+        //open admin menu
+
         if(event.getItem().getType()== Material.DIAMOND){
             player.sendMessage(arena.startGame());
             return;
@@ -52,6 +62,6 @@ public class useListener implements Listener {
         player.getInventory().setArmorContents(team.armor);
         //send message to player
         player.sendMessage("You joined "+team.name+" team");
-        event.setCancelled(true);
+        event.setCancelled(true);*/
     }
 }

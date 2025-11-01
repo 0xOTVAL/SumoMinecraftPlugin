@@ -12,6 +12,7 @@ repositories {
         name = "papermc"
         url = uri("https://repo.papermc.io/repository/maven-public/")
     }
+    mavenLocal()
 }
 
 dependencies {
@@ -21,6 +22,7 @@ dependencies {
    // compileOnly("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
     compileOnly("io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT")
     //annotationProcessor("com.velocitypowered:velocity-api:3.4.0-SNAPSHOT")
+    implementation(files("/home/a/IdeaProjects/SkyWarsPlugin/build/libs/SkyWarsPlugin-1.0-SNAPSHOT.jar "))
 }
 
 tasks.test {

@@ -2,18 +2,25 @@ package com.example.sumoplugin.team;
 
 import org.bukkit.Color;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 public class TeamData {
-    public TeamData(String name, String color, String spawnpos){
+    public TeamData(String name, String color){
         this.name=name;
         this.color=color;
-        this.spawnpos=spawnpos;
+    }public TeamData(String name, String color,String[] players){
+        this.name=name;
+        this.color=color;
+        this.players= Arrays.stream(players).collect(Collectors.toCollection(ArrayList::new));
     }
     public TeamData(){
 
     }
     public String name="";
-    public String spawnpos="";
     public String color="";
+    public ArrayList<String> players=new ArrayList<>();
 
     public Color GetTeamColor(){
         return switch (color) {
