@@ -3,10 +3,9 @@ package com.example.sumoplugin.eventlisteners;
 import com.example.sumoplugin.arena.Arena;
 import com.example.sumoplugin.arena.ArenaManager;
 import com.example.sumoplugin.Sumo;
-import com.example.sumoplugin.menu.AdminMenu;
-import com.example.sumoplugin.team.Team;
-import org.bukkit.Material;
-import org.bukkit.block.Banner;
+import com.example.sumoplugin.menu.SpectatorMenu;
+import com.example.sumoplugin.menu.SumoAdminMenu;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -26,8 +25,15 @@ public class useListener implements Listener {
         Player player=event.getPlayer();
         Arena arena=arenaManager.getArenaByPlayer(player);
         if(event.getItem()==null)return;
-        if(event.getItem().getType()== Material.ENDER_PEARL){// && event.getItem().getItemMeta().itemName().toString().equals("Admin menu")){
-            AdminMenu m=new AdminMenu(plugin);
+        String itemName= PlainTextComponentSerializer.plainText().serialize(event.getItem().getItemMeta().itemName());
+        if(itemName.equals("Sumo admin menu")){
+            SumoAdminMenu m=new SumoAdminMenu(plugin);
+            event.getPlayer().openInventory(m.menuInventory);
+            event.setCancelled(true);
+            return;
+        }
+        if(itemName.equals("Sumo spectator menu")){
+            SpectatorMenu m=new SpectatorMenu(plugin);
             event.getPlayer().openInventory(m.menuInventory);
             event.setCancelled(true);
             return;

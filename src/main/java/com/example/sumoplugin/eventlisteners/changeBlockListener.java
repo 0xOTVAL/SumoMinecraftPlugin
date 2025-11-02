@@ -30,7 +30,6 @@ public class changeBlockListener implements Listener {
             event.getBlock().setBlockData(Material.CHEST.createBlockData());
             Container cb =(Container)event.getBlock().getState();
             Inventory inv = cb.getInventory();
-            arena.fillBonusInventory(inv);
         }
     }
 }

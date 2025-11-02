@@ -13,6 +13,7 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scoreboard.*;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
@@ -119,6 +120,29 @@ public class Arena {
         t.isUsed=true;
 
     }
+    public void addSpec(Player p){
+        if(!spectators.contains(p))spectators.add(p);
+        p.setGameMode(GameMode.SPECTATOR);
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                p.teleportAsync(new Location(worldcopy,lobbypos.x,lobbypos.y,lobbypos.z));
+            }
+        });
+
+    }
+    public void delSpec(Player p){
+        if(spectators.contains(p)){
+            Bukkit.getScheduler().runTask(plugin, new Runnable() {
+                @Override
+                public void run() {
+                    p.teleportAsync(respawn_loc);
+                }
+            });
+            p.setGameMode(GameMode.SURVIVAL);
+            spectators.remove(p);
+        }
+    }
     public void delTeam(Team t){
         if(isGameStarted)return;
         for(Player p: t.players){
@@ -157,10 +181,6 @@ public class Arena {
         bar=Bukkit.getServer().createBossBar(gameTime / 60 +":"+ gameTime % 60, BarColor.BLUE, BarStyle.SOLID);
 
         for(Player p: players) {
-            //Cleat players inventory, but save armor
-            ItemStack[]armor= p.getInventory().getArmorContents();
-            p.getInventory().clear();
-            p.getInventory().setArmorContents(armor);
             //give stick and wool to player
             p.getInventory().addItem(new ItemStack(Material.STICK));
             ItemStack wool_stack=new ItemStack(Material.GREEN_WOOL);
@@ -238,12 +258,12 @@ public class Arena {
         worldcopy.spawnParticle(barrierParticle, (barrierPos1.x+barrierPos2.x)/2, (barrierPos1.y+barrierPos2.y)/2, barrierPos2.z, 3000, barrierXWidth, barrierYWidth, 0.2,0);*/
     }
     private void stopGame(String reason){
-        Bukkit.getServer().getConsoleSender().sendMessage("Stop game was called");
         timer.cancel();
         timer.purge();
 
         while(!players.isEmpty()) {
             Player p = players.getFirst();
+           spectators.remove(p);
          //   p.sendMessage(reason);
             if (reason.equals("teamWin"))
                 p.showTitle(Title.title(Component.text("Team " + teams.getFirst().name + " won", TextColor.color(teams.getFirst().color.asRGB())), Component.text("")));
@@ -252,7 +272,10 @@ public class Arena {
             returnPlayer(p);
         }
         bar.removeAll();
-        if(!spectators.isEmpty())spectators.clear();
+        while(!spectators.isEmpty()){
+            Player p = spectators.getFirst();
+            delSpec(p);
+        }
 
         for(Team t:teams){
             t.isUsed=false;
@@ -288,21 +311,20 @@ public class Arena {
 
         board=Bukkit.getScoreboardManager().getNewScoreboard();
     }
-    public void fillBonusInventory(Inventory inv){
-        inv.addItem(new ItemStack(Material.TNT));
-        inv.addItem(new ItemStack(Material.FLINT_AND_STEEL));
-    }
     public void returnPlayer(Player player){
         if(!players.contains(player))return;
-        player.sendMessage("returnPlayer");
         //restore player inventory
         player.getInventory().setContents(playerInventory.get(player));
         playerInventory.remove(player);
         if(bar!=null)if(bar.getPlayers().contains(player))bar.removePlayer(player);
         //teleport player to respawn location
         player.setGameMode(GameMode.SURVIVAL);
-        player.teleportAsync(respawn_loc);
-        player.setGameMode(GameMode.SURVIVAL);
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                player.teleportAsync(respawn_loc);
+            }
+        });
         player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
         players.remove(player);
     }
@@ -352,7 +374,12 @@ public class Arena {
                 barrierPos1.z<pos.z() && pos.z()<barrierPos2.z);
     }
     public void killPlayer(Player player){
-        player.teleport(new Location(worldcopy,lobbypos.x,lobbypos.y,lobbypos.z));
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                player.teleportAsync(new Location(worldcopy,lobbypos.x,lobbypos.y,lobbypos.z));
+            }
+        });
         player.showTitle(Title.title(Component.text("You died", TextColor.color(255,0,0)),Component.text("")));
 
         player.setGameMode(GameMode.SPECTATOR);

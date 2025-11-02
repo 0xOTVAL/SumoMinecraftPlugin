@@ -101,9 +101,9 @@ public class Team {
         deadPlayers.clear();
     }
     public void addPlayer(Player player){
-        players.add(player);
+        if(!players.contains(player))players.add(player);
     }
     public void removePlayer(Player player){
-        players.remove(player);
+        if(players.contains(player))players.remove(player);
     }
 }

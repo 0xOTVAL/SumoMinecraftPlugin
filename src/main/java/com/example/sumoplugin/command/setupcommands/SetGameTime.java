@@ -20,6 +20,7 @@ public class SetGameTime extends SubCommand {
         }
         arenaData.gameTime=Integer.parseInt(subCommandArgs[2]);
         sender.sendMessage("Set game time "+subCommandArgs[2]+" on arena "+arenaData.name);
+        if(plugin.arenaManager.getArenaByName(subCommandArgs[0])!=null)plugin.arenaManager.getArenaByName(subCommandArgs[0]).gameTime=Integer.parseInt(subCommandArgs[2]);
     }
     @Override
     public boolean canExecute(CommandSender sender, Command baseCommand, String baseCommandLabel, String subCommandLabel, String[] subCommandArgs) {
