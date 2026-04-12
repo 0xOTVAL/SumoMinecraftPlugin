@@ -59,7 +59,7 @@ public class Sumo extends JavaPlugin implements Listener {
         Objects.requireNonNull(this.getCommand("sumo")).setExecutor(mainCommand.base);
         //register events
         Bukkit.getPluginManager().registerEvents(new attackListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new interactListener(this),this);
+      //  Bukkit.getPluginManager().registerEvents(new interactListener(this),this);
         Bukkit.getPluginManager().registerEvents(new moveListener(this),this);
         Bukkit.getPluginManager().registerEvents(new useListener(this),this);
         Bukkit.getPluginManager().registerEvents(new deathListener(this),this);

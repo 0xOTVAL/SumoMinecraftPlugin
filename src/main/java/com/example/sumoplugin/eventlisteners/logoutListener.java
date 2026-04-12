@@ -17,6 +17,12 @@ public class logoutListener implements Listener {
     @EventHandler
     public void playerLogout(PlayerQuitEvent event){
         Arena arena =arenaManager.getArenaByPlayer(event.getPlayer());
-        if(arena!=null)arena.logoutPlayer(event.getPlayer());
+        if(arena!=null){
+            if(arena.isGameStarted)arena.logoutPlayer(event.getPlayer());
+            else{
+                plugin.teamManager.getTeamByPlayer(event.getPlayer()).removePlayer(event.getPlayer());
+                event.getPlayer().teleportAsync(plugin.respawnloc);
+            }
+        }
     }
 }

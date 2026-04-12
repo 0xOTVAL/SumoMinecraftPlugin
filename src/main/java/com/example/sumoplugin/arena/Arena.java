@@ -3,6 +3,7 @@ package com.example.sumoplugin.arena;
 import com.example.sumoplugin.Sumo;
 import com.example.sumoplugin.team.Team;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
 import net.minecraft.network.chat.ChatDecorator;
@@ -15,6 +16,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scoreboard.*;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 import java.io.*;
@@ -36,6 +38,7 @@ public class Arena {
 
     public ArrayList<Player> players=new ArrayList<>();
     public ArrayList<Team> teams =new ArrayList<>();
+    public ArrayList<Team> teams_rank =new ArrayList<>();
     public ArrayList<Player> spectators=new ArrayList<>();
     public ArrayList<Vector3f> spawns=new ArrayList<>();
     public HashMap<Team,Vector3f> teamspawns=new HashMap<>();
@@ -46,7 +49,7 @@ public class Arena {
     public BossBar bar;
     public Scoreboard board;
     public Objective boardObj;
-    public Particle barrierParticle=Particle.FIREWORK;
+    public Particle barrierParticle=Particle.DRAGON_BREATH;
     Sumo plugin;
     //Термоядерный костыль для нормальной перезагрузки мира
     int worldcopyindex=0;
@@ -110,6 +113,7 @@ public class Arena {
         teams.add(t);
         org.bukkit.scoreboard.Team st= board.registerNewTeam(t.name);
         st.setDisplayName(t.name);
+        st.color(NamedTextColor.nearestTo(TextColor.color(t.color.asRGB())));
         teamspawns.put(t,spawns.get(teams.size()-1));
         for(Player p: t.players){
             addPlayer(p);
@@ -261,16 +265,20 @@ public class Arena {
         timer.cancel();
         timer.purge();
 
-        while(!players.isEmpty()) {
-            Player p = players.getFirst();
-           spectators.remove(p);
-         //   p.sendMessage(reason);
-            if (reason.equals("teamWin"))
-                p.showTitle(Title.title(Component.text("Team " + teams.getFirst().name + " won", TextColor.color(teams.getFirst().color.asRGB())), Component.text("")));
-            if (reason.equals("timerEnd"))
-                p.showTitle(Title.title(Component.text("There is no winner"), Component.text("")));
+        for(Player p : Bukkit.getServer().getOnlinePlayers()){
+            p.sendPlainMessage("Топ команд:");
+            if(!teams.isEmpty())p.sendMessage(plugin.arenaManager.StrToComponent((("1. "+teams.getFirst().name)),NamedTextColor.nearestTo(TextColor.color(teams.getFirst().color.asRGB()))));
+            for(Team t:teams_rank.reversed()){
+                p.sendMessage(plugin.arenaManager.StrToComponent(((teams_rank.indexOf(t)+2)+". "+ t.name),NamedTextColor.nearestTo(TextColor.color(t.color.asRGB()))));
+            }
+        }
+        while(!players.isEmpty()){
+            Player p=players.getFirst();
+            spectators.remove(p);
+            p.sendPlainMessage(reason);
             returnPlayer(p);
         }
+
         bar.removeAll();
         while(!spectators.isEmpty()){
             Player p = spectators.getFirst();
@@ -310,11 +318,14 @@ public class Arena {
         barrierPos2.z=max(pos1.z,pos2.z);
 
         board=Bukkit.getScoreboardManager().getNewScoreboard();
+
+        teams_rank.clear();
     }
     public void returnPlayer(Player player){
         if(!players.contains(player))return;
         //restore player inventory
-        player.getInventory().setContents(playerInventory.get(player));
+        player.setVelocity(new Vector(0,0,0));
+        player.getInventory().clear();
         playerInventory.remove(player);
         if(bar!=null)if(bar.getPlayers().contains(player))bar.removePlayer(player);
         //teleport player to respawn location
@@ -327,6 +338,7 @@ public class Arena {
         });
         player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
         players.remove(player);
+
     }
     public String start(){
         if(isStarted)return "Arena is already started";
@@ -373,47 +385,48 @@ public class Arena {
                 barrierPos1.y<pos.y() && pos.y()<barrierPos2.y &&
                 barrierPos1.z<pos.z() && pos.z()<barrierPos2.z);
     }
-    public void killPlayer(Player player){
-        Bukkit.getScheduler().runTask(plugin, new Runnable() {
-            @Override
-            public void run() {
-                player.teleportAsync(new Location(worldcopy,lobbypos.x,lobbypos.y,lobbypos.z));
-            }
-        });
-        player.showTitle(Title.title(Component.text("You died", TextColor.color(255,0,0)),Component.text("")));
 
+    public void killPlayer(Player player,String msg){
         player.setGameMode(GameMode.SPECTATOR);
         spectators.add(player);
-
+        player.teleportAsync(new Location(worldcopy,(pos1.x+pos2.x)/2,(pos1.y+pos2.y)/2,(pos1.z+pos2.z)/2));
+        for(Player p : Bukkit.getServer().getOnlinePlayers()){
+            p.sendPlainMessage(msg);
+        }
         Team t=plugin.teamManager.getTeamByPlayer(player);
         t.killPlayer(player);
+
         if(t.players.size()==t.deadPlayers.size() || t.players.isEmpty()){
             t.isUsed=false;
+            teams_rank.add(t);
             teams.remove(t);
         }
         if(teams.size() == 1) {
-            stopGame("teamWin");
+            stopGame("Подебила команда "+teams.getFirst().name);
             return;
         }
         if (teams.isEmpty()) {
-            stopGame("timerEnd");
+            stopGame("Победителя нету");
         }
     }
     public void logoutPlayer(Player player){
         Team t=plugin.teamManager.getTeamByPlayer(player);
         t.removePlayer(player);
+        player.getInventory().clear();
+
         if(t.players.size()==t.deadPlayers.size() || t.players.isEmpty()){
             t.isUsed=false;
             teams.remove(t);
+            teams_rank.add(t);
         }
         returnPlayer(player);
-        if(!isGameStarted)return;
-        if(teams.size() == 1) {
-            stopGame("teamWin");
+        if( teams.size() == 1) {
+            stopGame("Победила команда "+teams.getFirst().name);
             return;
         }
-        if (teams.isEmpty()) {
-            stopGame("timerEnd");
+        if(players.size()<=1){
+            stopGame("Эт че за хуйня щас случилась");
+            return;
         }
     }
     private static void copyFileStructure(File source, File target){

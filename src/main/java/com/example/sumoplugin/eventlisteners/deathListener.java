@@ -3,6 +3,8 @@ package com.example.sumoplugin.eventlisteners;
 import com.example.sumoplugin.arena.Arena;
 import com.example.sumoplugin.arena.ArenaManager;
 import com.example.sumoplugin.Sumo;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.damage.DamageType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -22,7 +24,8 @@ public class deathListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        arena.killPlayer(event.getPlayer());
+        if(event.getDamageSource().getDamageType()== DamageType.FALL)event.setCancelled(true);
+        arena.killPlayer(event.getPlayer(), PlainTextComponentSerializer.plainText().serialize(event.deathMessage()));
         event.setCancelled(true);
     }
 }

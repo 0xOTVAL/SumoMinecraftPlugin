@@ -1,6 +1,8 @@
 package com.example.sumoplugin.arena;
 
 import com.example.sumoplugin.Sumo;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -58,4 +60,12 @@ public class ArenaManager {
             arenas.add(a);
         }
     }
+    public TextComponent StrToComponent(String str, TextColor color){
+        final TextComponent c = net.kyori.adventure.text.Component.text()
+                .content(str)
+                .color(color)
+                .build();
+        return c;
+    }
+
 }

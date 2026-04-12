@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class blockPlaceListener implements Listener {
     public ArenaManager arenaManager;
@@ -50,6 +51,7 @@ public class blockPlaceListener implements Listener {
             public void run()
             {
                 event.getBlockPlaced().setType(Material.AIR);
+                event.getPlayer().getInventory().addItem(new ItemStack(Material.GREEN_WOOL));
             }
         }, 3*20L);
     }

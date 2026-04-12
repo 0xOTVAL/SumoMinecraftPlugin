@@ -17,7 +17,7 @@ public class CommandExecutorBase  implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         for(SubCommand c: subCommands){
-            if(c.canExecute(sender,command,label,args[0], Arrays.copyOfRange(args, 1,args.length))){
+            if(sender.isOp() &&c.canExecute(sender,command,label,args[0], Arrays.copyOfRange(args, 1,args.length))){
                 c.runCommand(sender,command,label,args[0],Arrays.copyOfRange(args, 1,args.length));
                 return true;
             }
